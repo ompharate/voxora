@@ -78,7 +78,7 @@ const config: Config = {
   email: {
     host: process.env.EMAIL_HOST || "localhost",
     port: parseInt(process.env.EMAIL_PORT || "1025", 10), // MailHog default port
-    secure: false, // MailHog doesn't use SSL
+    secure: true, // MailHog doesn't use SSL
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,

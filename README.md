@@ -31,6 +31,8 @@
 ⚙️ Designed to be flexible, scalable, and effortlessly integrable.
 <hr/>
 
+<img width="1536" height="1024" alt="architecture" src="https://github.com/user-attachments/assets/a3761df4-a295-4963-9d10-77322fb9a072" />
+
 
 ## 🚀 Quick One Click Dev Setup
 
@@ -73,8 +75,13 @@ make all
 
 Thanks to these amazing people who are building InteraOne! 🚀
 
+<<<<<<< HEAD
 <a href="https://github.com/InteraOne-cloud/InteraOne/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=InteraOne-cloud/InteraOne" />
+=======
+<a href="https://github.com/interaone/interaone/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=interaone/interaone" />
+>>>>>>> 01fd4dd (Rename project from Voxora to InteraOne)
 </a>
 
 

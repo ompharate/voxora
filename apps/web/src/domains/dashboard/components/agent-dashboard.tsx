@@ -51,19 +51,19 @@ const myConversationsData = [
 const chartConfig = {
   conversations: {
     label: "Conversations",
-    color: "#10b981",
+    color: "var(--color-success)",
   },
   messages: {
     label: "Messages",
-    color: "#3b82f6",
+    color: "var(--color-info)",
   },
   responseTime: {
     label: "Response Time (min)",
-    color: "#8b5cf6",
+    color: "var(--color-primary)",
   },
   count: {
     label: "Count",
-    color: "#f59e0b",
+    color: "var(--color-warning)",
   },
 };
 
@@ -220,8 +220,8 @@ export function AgentDashboard() {
           <div className="space-y-6 pt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-emerald-500/10 p-2">
-                  <Activity className="h-5 w-5 text-emerald-500" />
+                <div className="rounded-full bg-success/10 p-2">
+                  <Activity className="h-5 w-5 text-success" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
@@ -231,15 +231,15 @@ export function AgentDashboard() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-emerald-500 font-medium">+8%</p>
+                <p className="text-sm text-success font-medium">+8%</p>
                 <p className="text-xs text-muted-foreground">vs last week</p>
               </div>
             </div>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-blue-500/10 p-2">
-                  <MessageSquare className="h-5 w-5 text-blue-500" />
+                <div className="rounded-full bg-info/10 p-2">
+                  <MessageSquare className="h-5 w-5 text-info" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Messages Sent</p>
@@ -247,15 +247,15 @@ export function AgentDashboard() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-blue-500 font-medium">+12%</p>
+                <p className="text-sm text-info font-medium">+12%</p>
                 <p className="text-xs text-muted-foreground">vs last week</p>
               </div>
             </div>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-purple-500/10 p-2">
-                  <TrendingUp className="h-5 w-5 text-purple-500" />
+                <div className="rounded-full bg-primary/10 p-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
@@ -265,15 +265,15 @@ export function AgentDashboard() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-purple-500 font-medium">+0.2</p>
+                <p className="text-sm text-primary font-medium">+0.2</p>
                 <p className="text-xs text-muted-foreground">improvement</p>
               </div>
             </div>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-orange-500/10 p-2">
-                  <CheckCircle className="h-5 w-5 text-orange-500" />
+                <div className="rounded-full bg-warning/10 p-2">
+                  <CheckCircle className="h-5 w-5 text-warning" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
@@ -283,7 +283,7 @@ export function AgentDashboard() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-orange-500 font-medium">+3%</p>
+                <p className="text-sm text-warning font-medium">+3%</p>
                 <p className="text-xs text-muted-foreground">vs last week</p>
               </div>
             </div>

@@ -1,5 +1,5 @@
 # ============================================================
-# Caddyfile  —  Voxora reverse proxy
+# Caddyfile  —  InteraOne reverse proxy
 #
 # Uses Caddy's native environment variable substitution: {$VAR}
 # Values come from docker/.env  →  docker-compose caddy.environment

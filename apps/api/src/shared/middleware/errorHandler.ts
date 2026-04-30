@@ -18,6 +18,14 @@ export const authRateLimit = rateLimit({
   skipSuccessfulRequests: true,
 });
 
+export const billingWebhookRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { success: false, message: "Too many webhook requests, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const errorHandler = (
   error: Error,
   req: Request,

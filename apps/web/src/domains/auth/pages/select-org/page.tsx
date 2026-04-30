@@ -8,6 +8,7 @@ interface Organization {
   _id: string;
   name: string;
   slug?: string;
+  plan?: "free" | "pro" | "proplus" | "enterprise";
 }
 
 interface OrgMembership {
@@ -39,7 +40,7 @@ export function SelectOrgPage() {
     }
   }, [memberships, navigate]);
 
-  const handleSelect = async (org: Organization, role: "owner" | "admin" | "agent") => {
+  const handleSelect = async (org: Organization) => {
     setSelecting(org._id);
     setError("");
     try {
@@ -50,6 +51,9 @@ export function SelectOrgPage() {
         authApi.setToken(res.data.accessToken);
         authApi.setActiveOrgId(res.data.organization._id);
         authApi.setOrgRole(res.data.role);
+        if (res.data.organization.plan) {
+          authApi.setOrgPlan(res.data.organization.plan);
+        }
         
         const tempAuthUser = localStorage.getItem("tempAuthUser");
         let user = null;
@@ -102,7 +106,7 @@ export function SelectOrgPage() {
           {memberships.map(({ organization: org, role }) => (
             <button
               key={org._id}
-              onClick={() => handleSelect(org, role)}
+              onClick={() => handleSelect(org)}
               disabled={!!selecting}
               className="w-full flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:border-accent hover:bg-accent/50 transition-all duration-150 cursor-pointer disabled:opacity-60 group"
             >

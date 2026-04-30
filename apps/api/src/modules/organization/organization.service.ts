@@ -121,6 +121,7 @@ export class OrganizationService {
             name?: string;
             slug?: string;
             logoUrl?: string;
+            whiteLabelEnabled?: boolean;
             emailSender?: {
                 fromEmail?: string;
                 fromName?: string;
@@ -141,6 +142,7 @@ export class OrganizationService {
         if (typeof data.name !== "undefined") updateFields.name = data.name;
         if (typeof data.slug !== "undefined") updateFields.slug = data.slug;
         if (typeof data.logoUrl !== "undefined") updateFields.logoUrl = data.logoUrl;
+        if (typeof data.whiteLabelEnabled !== "undefined") updateFields.whiteLabelEnabled = data.whiteLabelEnabled;
 
         if (data.emailSender) {
             const current = existingOrg.emailSender || { verified: false };

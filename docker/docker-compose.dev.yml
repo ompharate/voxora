@@ -4,7 +4,7 @@ services:
   # Redis for Socket.IO adapter and caching
   redis:
     image: redis:7-alpine
-    container_name: voxora-redis-dev
+    container_name: InteraOne-redis-dev
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -14,28 +14,28 @@ services:
       - redis_data_dev:/data
     command: redis-server --appendonly yes --requirepass dev123
     networks:
-      - voxora-dev-network
+      - InteraOne-dev-network
 
   # MongoDB for data persistence
   mongodb:
     image: mongo:7
-    container_name: voxora-mongodb-dev
+    container_name: InteraOne-mongodb-dev
     restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: dev123
-      MONGO_INITDB_DATABASE: voxora-chat-dev
+      MONGO_INITDB_DATABASE: InteraOne-chat-dev
     volumes:
       - mongodb_data_dev:/data/db
     networks:
-      - voxora-dev-network
+      - InteraOne-dev-network
 
   # MongoDB Express for database management (optional)
   mongo-express:
     image: mongo-express:1.0.2-18
-    container_name: voxora-mongo-express-dev
+    container_name: InteraOne-mongo-express-dev
     restart: unless-stopped
     ports:
       - "8081:8081"
@@ -48,23 +48,23 @@ services:
     depends_on:
       - mongodb
     networks:
-      - voxora-dev-network
+      - InteraOne-dev-network
 
   # MailHog for email testing in development
   mailhog:
     image: mailhog/mailhog:v1.0.1
-    container_name: voxora-mailhog-dev
+    container_name: InteraOne-mailhog-dev
     restart: unless-stopped
     ports:
       - "1025:1025"  # SMTP server port
       - "8025:8025"  # Web UI port
     networks:
-      - voxora-dev-network
+      - InteraOne-dev-network
 
 
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: voxora-qdrant-dev
+    container_name: InteraOne-qdrant-dev
     restart: unless-stopped
     ports:
       - "6333:6333"  # REST API
@@ -72,7 +72,7 @@ services:
     volumes:
       - qdrant_data_dev:/qdrant/storage
     networks:
-      - voxora-dev-network
+      - InteraOne-dev-network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:6333/healthz"]
       interval: 30s
@@ -81,7 +81,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: voxora-minio-dev
+    container_name: InteraOne-minio-dev
     restart: unless-stopped
     ports:
       - "9001:9001"  # API port (widget CDN)
@@ -95,7 +95,7 @@ services:
     volumes:
       - minio_data_dev:/data
     networks:
-      - voxora-dev-network
+      - InteraOne-dev-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9001/minio/health/live"]
       interval: 30s
@@ -113,5 +113,5 @@ volumes:
     driver: local
 
 networks:
-  voxora-dev-network:
+  InteraOne-dev-network:
     driver: bridge

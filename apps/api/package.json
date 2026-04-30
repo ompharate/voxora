@@ -1,5 +1,5 @@
 {
-  "name": "api",
+  "name": "@InteraOne/api",
   "version": "1.0.0",
   "main": "index.js",
   "engines": {
@@ -10,7 +10,8 @@
     "dev": "nodemon src/index.ts",
     "build": "tsc && tsc-alias",
     "start": "node dist/index.js",
-    "seed:email-templates": "ts-node -r tsconfig-paths/register src/scripts/seed-email-templates.ts"
+    "seed:email-templates": "ts-node -r tsconfig-paths/register src/scripts/seed-email-templates.ts",
+    "test:ee-missing": "ts-node -r tsconfig-paths/register src/scripts/ee-missing-smoke.ts"
   },
   "keywords": [
     "chat",

@@ -1,5 +1,6 @@
 import { redisClient } from "@shared/config/redis";
 import { Conversation, Message, Team, Membership } from "@shared/models";
+import { incrementMessageUsage } from "@shared/middleware";
 import logger from "@shared/utils/logger";
 import type SocketManager from "@sockets/index";
 
@@ -110,6 +111,19 @@ export async function startAIResponseConsumer(socketManager: SocketManager): Pro
       }
 
       const organizationId = conv?.organizationId?.toString() || "";
+
+      // ── Message usage tracking ──────────────────────────────────────────────
+      const usageResult = await incrementMessageUsage(organizationId);
+      if (usageResult.blocked) {
+        logger.warn(`[AI Response] Message limit reached for org=${organizationId} (used=${usageResult.used} limit=${usageResult.limit}) — dropping AI response`);
+        socketManager.emitToConversation(conversationId, "limit_reached", {
+          limitType: "messages",
+          currentUsage: usageResult.used,
+          limit: usageResult.limit,
+          upgradeRequired: true,
+        });
+        return;
+      }
 
       const msg = new Message({
         conversationId,

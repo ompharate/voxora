@@ -13,11 +13,28 @@ function parseEmailProvider(value?: string): EmailProvider {
       : "disabled";
 }
 
+/**
+ * Returns true when the Enterprise Edition is active in this deployment.
+ * Mirrors the logic in apps/api/src/shared/ee/env.ts — kept as a local
+ * helper so the worker does not have to import from the api package.
+ */
+export function isEeEnabled(): boolean {
+  const mode = (process.env.INTERAONE_MODE || "").toLowerCase();
+  if (mode === "cloud") {
+    return (process.env.INTERAONE_EE_ENABLED || "false").toLowerCase() === "true";
+  }
+  const key = process.env.INTERAONE_LICENSE_KEY || "";
+  return key.startsWith("interaone_");
+}
+
 const config = {
   redis: {
     host: process.env.REDIS_HOST || "localhost",
     port: parseInt(process.env.REDIS_PORT || "6379", 10),
     password: process.env.REDIS_PASSWORD || undefined,
+  },
+  database: {
+    mongoUri: process.env.MONGODB_URI || "mongodb://localhost:27017/interaone",
   },
   worker: {
     concurrency: parseInt(process.env.WORKER_CONCURRENCY || "5", 10),
@@ -33,14 +50,15 @@ const config = {
     },
     resendApiKey: process.env.RESEND_API_KEY || undefined,
     from: {
-      name: process.env.EMAIL_FROM_NAME || "Voxora",
+      name: process.env.EMAIL_FROM_NAME || "InteraOne",
       email:
         process.env.EMAIL_FROM_EMAIL
         || process.env.EMAIL_FROM_ADDRESS
-        || "noreply@voxora.app",
+        || "noreply@interaone.app",
     },
   },
 };
 
 export default config;
 export type { EmailProvider };
+

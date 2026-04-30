@@ -24,7 +24,7 @@ services:
       api:
         condition: service_healthy
     networks:
-      - voxora-network
+      - InteraOne-network
     healthcheck:
       test: ["CMD", "caddy", "version"]
       interval: 30s
@@ -40,7 +40,7 @@ services:
   # Exits after deploy (restart: no). Re-runs on `docker-compose up`.
   # Uses runtime config injection via entrypoint.sh (similar to Next.js web app).
   widget-deploy:
-    image: ompharate/voxora-widget:latest
+    image: ompharate/InteraOne-widget:latest
     restart: no
     env_file:
       - ../apps/widget/.env.docker
@@ -48,7 +48,7 @@ services:
       minio:
         condition: service_healthy
     networks:
-      - voxora-network
+      - InteraOne-network
     logging:
       driver: "json-file"
       options:
@@ -56,7 +56,7 @@ services:
         max-file: "2"
 
   web: 
-    image: ompharate/voxora-web:latest
+    image: ompharate/InteraOne-web:latest
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"  # Caddy is the public entry-point; bind locally for health checks only
@@ -66,7 +66,7 @@ services:
       api:
         condition: service_healthy
     networks:
-      - voxora-network
+      - InteraOne-network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
@@ -80,7 +80,7 @@ services:
         max-file: "3"
 
   api:
-    image: ompharate/voxora-api:latest
+    image: ompharate/InteraOne-api:latest
     restart: unless-stopped
     ports:
       - "127.0.0.1:3002:3002"  # Caddy is the public entry-point; bind locally for health checks only
@@ -94,7 +94,7 @@ services:
       minio:
         condition: service_healthy
     networks:
-      - voxora-network
+      - InteraOne-network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/api/v1/health"]
       interval: 30s
@@ -108,7 +108,7 @@ services:
         max-file: "3"
 
   ai:
-    image: ompharate/voxora-ai:latest
+    image: ompharate/InteraOne-ai:latest
     restart: unless-stopped
     env_file:
       - ../apps/ai/.env.docker
@@ -120,7 +120,7 @@ services:
       qdrant:
         condition: service_started
     networks:
-      - voxora-network
+      - InteraOne-network
     logging:
       driver: "json-file"
       options:
@@ -128,7 +128,7 @@ services:
         max-file: "3"
 
   worker:
-    image: ompharate/voxora-worker:latest
+    image: ompharate/InteraOne-worker:latest
     restart: unless-stopped
     env_file:
       - ../apps/worker/.env.docker
@@ -136,7 +136,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - voxora-network
+      - InteraOne-network
     logging:
       driver: "json-file"
       options:
@@ -151,12 +151,12 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-voxora-chat}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-InteraOne-chat}
     volumes:
       - mongodb_data:/data/db
       - mongodb_backups:/backups
     networks:
-      - voxora-network
+      - InteraOne-network
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 10s
@@ -185,7 +185,7 @@ services:
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru"
     networks:
-      - voxora-network
+      - InteraOne-network
     healthcheck:
       test: ["CMD-SHELL", "redis-cli --no-auth-warning -a $$REDIS_PASSWORD ping"]
       interval: 10s
@@ -217,7 +217,7 @@ services:
     volumes:
       - minio_data:/data
     networks:
-      - voxora-network
+      - InteraOne-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9001/minio/health/live"]
       interval: 30s
@@ -239,7 +239,7 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
-      - voxora-network
+      - InteraOne-network
     logging:
       driver: "json-file"
       options:
@@ -263,5 +263,5 @@ volumes:
     driver: local
 
 networks:
-  voxora-network:
+  InteraOne-network:
     driver: bridge

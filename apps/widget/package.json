@@ -1,7 +1,7 @@
 {
-  "name": "widget",
+  "name": "@InteraOne/widget",
   "version": "1.0.0",
-  "description": "Voxora embeddable chat widget",
+  "description": "InteraOne embeddable chat widget",
   "type": "module",
   "engines": {
     "node": ">=20"

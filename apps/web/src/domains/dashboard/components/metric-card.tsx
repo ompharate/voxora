@@ -30,8 +30,8 @@ export function MetricCard({
               <span
                 className={cn(
                   "text-sm font-medium",
-                  changeType === "positive" && "text-emerald-500",
-                  changeType === "negative" && "text-red-500",
+                  changeType === "positive" && "text-success",
+                  changeType === "negative" && "text-destructive",
                   changeType === "neutral" && "text-muted-foreground"
                 )}
               >

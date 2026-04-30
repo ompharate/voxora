@@ -11,7 +11,9 @@ export interface Organization {
   _id: string;
   name: string;
   slug: string;
+  plan?: "free" | "pro" | "proplus" | "enterprise";
   logoUrl?: string;
+  whiteLabelEnabled?: boolean;
   emailSender?: OrganizationEmailSender;
   isActive: boolean;
 }

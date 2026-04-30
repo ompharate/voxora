@@ -8,3 +8,7 @@ export { Widget, IWidget } from "./Widget";
 export { Knowledge, IKnowledge } from "./Knowledge";
 export { EmailTemplate, IEmailTemplate, EmailTemplateType } from "./EmailTemplate";
 export { Contact, IContact, ContactStatus, ContactSource } from "./Contact";
+export { BillingWebhookEvent, IBillingWebhookEvent } from "./BillingWebhookEvent";
+export { BillingCheckoutIntent, IBillingCheckoutIntent } from "./BillingCheckoutIntent";
+export { UsageRecord, IUsageRecord } from "./UsageRecord";
+export { BillingSubscription, IBillingSubscription, SubscriptionStatus } from "./BillingSubscription";

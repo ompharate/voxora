@@ -4,13 +4,25 @@ export interface IOrganization extends Document {
   _id: Types.ObjectId;
   name: string;
   slug: string;
+  plan: "free" | "pro" | "proplus" | "enterprise";
   logoUrl?: string;
+  whiteLabelEnabled: boolean;
   emailSender?: {
     fromEmail?: string;
     fromName?: string;
     domain?: string;
     verified: boolean;
   };
+  /** Separate billing contact email (can differ from owner account email) */
+  billingEmail?: string;
+  /** Current Dodo subscription status */
+  subscriptionStatus: "active" | "trialing" | "past_due" | "cancelled" | "unpaid" | null;
+  /** When the current trial ends (null = not on trial) */
+  trialEndsAt?: Date;
+  /** Prevent starting a second trial */
+  trialUsed: boolean;
+  /** Schedule downgrade at period end instead of immediately */
+  cancelAtPeriodEnd: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -27,7 +39,22 @@ const organizationSchema = new Schema<IOrganization>(
       trim: true,
       match: /^[a-z0-9-]+$/,
     },
+    plan: {
+      type: String,
+      enum: ["free", "pro", "proplus", "enterprise"],
+      default: "free",
+    },
+    billingEmail: { type: String, trim: true, lowercase: true },
+    subscriptionStatus: {
+      type: String,
+      enum: ["active", "trialing", "past_due", "cancelled", "unpaid", null],
+      default: null,
+    },
+    trialEndsAt: { type: Date, default: null },
+    trialUsed: { type: Boolean, default: false },
+    cancelAtPeriodEnd: { type: Boolean, default: false },
     logoUrl: { type: String, default: null },
+    whiteLabelEnabled: { type: Boolean, default: false },
     emailSender: {
       fromEmail: { type: String, trim: true, lowercase: true },
       fromName: { type: String, trim: true, maxlength: 120 },

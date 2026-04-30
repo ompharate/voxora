@@ -1,0 +1,117 @@
+export type InteraOneMode = "cloud" | "self-host";
+export type PlanTier = "free" | "pro" | "proplus" | "enterprise";
+export type EeFeature = "billing" | "contacts" | "white-label";
+export type PlanLimitKey = "messages" | "teams" | "humanAgents" | "contacts" | "knowledgeItems";
+
+export interface PlanDefinition {
+  plan: PlanTier;
+  priceMonthlyUsd: number;
+  summary: string;
+  features: string[];
+  limits: Record<PlanLimitKey, number | null>;
+}
+
+export const PLAN_WEIGHT: Record<PlanTier, number> = {
+  free: 1,
+  pro: 2,
+  proplus: 3,
+  enterprise: 4,
+};
+
+export const EE_FEATURE_POLICY: Record<
+  EeFeature,
+  {
+    requiredPlan: PlanTier;
+    enabledModes: InteraOneMode[];
+  }
+> = {
+  billing: {
+    requiredPlan: "free",
+    enabledModes: ["cloud"],
+  },
+  contacts: {
+    requiredPlan: "free",
+    enabledModes: ["cloud"],
+  },
+  "white-label": {
+    requiredPlan: "enterprise",
+    enabledModes: ["cloud"],
+  },
+};
+
+export const OSS_CORE_CAPABILITIES: string[] = [
+  "Realtime inbox and conversations",
+  "Website chat widget",
+  "Basic AI assistance",
+  "Teams and agent management",
+  "Knowledge base",
+  "Organization and role management",
+];
+
+export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
+  free: {
+    plan: "free",
+    priceMonthlyUsd: 0,
+    summary: "Starter plan for small support workflows.",
+    features: [
+      "Everything in OSS core",
+      "Voxora branding",
+    ],
+    limits: {
+      messages: 50,
+      teams: 1,
+      humanAgents: 2,
+      contacts: 10,
+      knowledgeItems: 10,
+    },
+  },
+  pro: {
+    plan: "pro",
+    priceMonthlyUsd: 10,
+    summary: "Built for growing support teams.",
+    features: [
+      "Voxora branding",
+      "Standard email support",
+    ],
+    limits: {
+      messages: 500,
+      teams: 2,
+      humanAgents: 5,
+      contacts: 500,
+      knowledgeItems: 100,
+    },
+  },
+  proplus: {
+    plan: "proplus",
+    priceMonthlyUsd: 39,
+    summary: "High-volume plan for fast scaling teams.",
+    features: [
+      "Voxora branding",
+      "Priority support",
+    ],
+    limits: {
+      messages: 5000,
+      teams: 10,
+      humanAgents: 50,
+      contacts: 5000,
+      knowledgeItems: 1000,
+    },
+  },
+  enterprise: {
+    plan: "enterprise",
+    priceMonthlyUsd: 0,
+    summary: "Custom unlimited plan for enterprise customers.",
+    features: [
+      "No Voxora branding",
+      "Everything unlimited",
+      "Custom contract and onboarding",
+    ],
+    limits: {
+      messages: null,
+      teams: null,
+      humanAgents: null,
+      contacts: null,
+      knowledgeItems: null,
+    },
+  },
+};

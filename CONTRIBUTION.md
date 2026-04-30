@@ -1,6 +1,6 @@
 # Contribution Guidelines
 
-Thanks for your interest in contributing to Voxora! Please read these guidelines before opening an issue or pull request.
+Thanks for your interest in contributing to InteraOne! Please read these guidelines before opening an issue or pull request.
 
 ## Getting started
 
@@ -56,9 +56,9 @@ By contributing, you agree that your contributions will be licensed under the re
 ## Contributor Agreement
 
 By submitting a pull request (PR) to this repository, you agree that:
-1. Your contributions will be licensed under the Voxora Custom License v1.0.
-2. You do not gain any ownership, equity, or legal rights in Voxora the company.
-3. The copyright for your contributions is granted to Voxora under the terms of the license.
+1. Your contributions will be licensed under the InteraOne Custom License v1.0.
+2. You do not gain any ownership, equity, or legal rights in InteraOne the company.
+3. The copyright for your contributions is granted to InteraOne under the terms of the license.
 
 
 ## PR checklist

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { MembershipController } from "./membership.controller";
-import { authenticate, resolveOrganization, requireRole, validateRequest } from "@shared/middleware";
+import { authenticate, resolveOrganization, requireRole, validateRequest, requireWithinLimit } from "@shared/middleware";
 import { membershipSchema } from "./membership.schema";
 
 export const membershipRouter = Router();
@@ -21,6 +21,7 @@ membershipRouter.get(
 membershipRouter.post(
     "/organizations/:orgId/members/invite",
     requireRole("admin"),
+    requireWithinLimit("humanAgents"),
     validateRequest(membershipSchema.inviteMember),
     MembershipController.inviteMember,
 );

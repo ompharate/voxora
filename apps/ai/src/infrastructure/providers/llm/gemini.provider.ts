@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { LLMProvider, LLMMessage, LLMOptions } from "./types";
 
 export class GeminiProvider implements LLMProvider {
@@ -52,23 +52,33 @@ export class GeminiProvider implements LLMProvider {
                 for (const [k, v] of Object.entries(t.parameters)) {
                     const paramDef = v as any;
                     const { required, ...rest } = paramDef;
-                    const normalized: any = { ...rest, type: String(paramDef.type).toUpperCase() };
+                    const normalized: any = { ...rest, type: String(paramDef.type).toUpperCase() as Type };
                     if (paramDef.items?.type) {
                         normalized.items = {
                             ...paramDef.items,
-                            type: String(paramDef.items.type).toUpperCase(),
+                            type: String(paramDef.items.type).toUpperCase() as Type,
                         };
                     }
                     props[k] = normalized;
                 }
+
+                const requiredKeys = Object.entries(t.parameters)
+                    .filter(([k, v]) => v.required)
+                    .map(([k]) => k);
+
+                const schema: Schema = {
+                    type: Type.OBJECT,
+                    properties: props,
+                };
+
+                if (requiredKeys.length > 0) {
+                    schema.required = requiredKeys;
+                }
+
                 return {
                     name: t.name,
                     description: t.description,
-                    parameters: {
-                        type: "OBJECT",
-                        properties: props,
-                        required: Object.entries(t.parameters).filter(([k, v]) => v.required).map(([k]) => k)
-                    }
+                    parameters: schema
                 };
             })
         }];

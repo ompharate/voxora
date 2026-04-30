@@ -14,22 +14,22 @@ BOLD := \033[1m
 CYAN := \033[0;36m
 
 define BANNER
-	@printf "$(BLUE)"
-	@printf "██╗   ██╗ ██████╗ ██╗  ██╗ ██████╗ ██████╗  █████╗ \n"
-	@printf "██║   ██║██╔═══██╗╚██╗██╔╝██╔═══██╗██╔══██╗██╔══██╗\n"
-	@printf "██║   ██║██║   ██║ ╚███╔╝ ██║   ██║██████╔╝███████║\n"
-	@printf "╚██╗ ██╔╝██║   ██║ ██╔██╗ ██║   ██║██╔══██╗██╔══██║\n"
-	@printf " ╚████╔╝ ╚██████╔╝██╔╝ ██╗╚██████╔╝██║  ██║██║  ██║\n"
-	@printf "  ╚═══╝   ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝\n"
+	@printf "\033[38;2;117;76;90m"
+	@printf "██╗███╗   ██╗████████╗███████╗██████╗  █████╗  ██████╗ ███╗   ██╗███████╗\n"
+	@printf "██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗██╔══██╗██╔═══██╗████╗  ██║██╔════╝\n"
+	@printf "██║██╔██╗ ██║   ██║   █████╗  ██████╔╝███████║██║   ██║██╔██╗ ██║█████╗  \n"
+	@printf "██║██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗██╔══██║██║   ██║██║╚██╗██║██╔══╝  \n"
+	@printf "██║██║ ╚████║   ██║   ███████╗██║  ██║██║  ██║╚██████╔╝██║ ╚████║███████╗\n"
+	@printf "╚═╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝\n"
 	@printf "$(NC)"
-	@printf "\n$(BOLD)  Development Installer$(NC)  —  $(CYAN)github.com/voxora-cloud/voxora$(NC)\n\n"
+	@printf "\n$(BOLD)  Development Installer$(NC)\n\n"
 	@printf "$(NC)"
 @echo ""
 endef
 
 help: ## Show available commands
 	$(BANNER)
-	@echo "$(BLUE)Voxora Development Commands$(NC)"
+	@echo "$(BLUE)InteraOne Development Commands$(NC)"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 	@echo ""
@@ -122,7 +122,7 @@ verify: ## Verify system requirements (git, node, pnpm, ports)
 
 all: ## Install, start Docker, deploy widget, and run dev (api + web + ai)
 	$(BANNER)
-	@echo "$(BLUE)  Installing Voxora...$(NC)"
+	@echo "$(BLUE)  Installing InteraOne...$(NC)"
 	@echo ""
 	@sleep 2
 	@$(MAKE) verify
@@ -221,7 +221,7 @@ docker-start: check-docker ## Start Docker services
 docker-health: ## Check health of Docker services
 	@echo "$(BLUE)🏥 Checking service health...$(NC)"
 	@sleep 3
-	@docker ps --filter "name=voxora-" --format "table {{.Names}}\t{{.Status}}" | grep -v "NAMES" | while read line; do \
+	@docker ps --filter "name=InteraOne-" --format "table {{.Names}}\t{{.Status}}" | grep -v "NAMES" | while read line; do \
 		if echo "$$line" | grep -q "Up"; then \
 			echo "$(GREEN)✓$(NC) $$line"; \
 		else \
@@ -253,28 +253,28 @@ widget-deploy: ## Build and deploy widget to MinIO
 		exit 1; \
 	}
 	@echo "$(GREEN)✅ Widget deployed to MinIO$(NC)"
-	@echo "$(BLUE)📍 Widget URL:$(NC) http://localhost:9001/voxora-widget/v1/voxora.js"
+	@echo "$(BLUE)📍 Widget URL:$(NC) http://localhost:9001/InteraOne-widget/v1/InteraOne.js"
 	@echo ""
 
 docker-setup-builder:
-	@docker buildx create --use --name voxora-builder 2>/dev/null || docker buildx use voxora-builder
+	@docker buildx create --use --name InteraOne-builder 2>/dev/null || docker buildx use InteraOne-builder
 
 docker-build-api: docker-setup-builder ## Build API image
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/voxora-api:$(VERSION) \
-		--tag $(REGISTRY)/voxora-api:latest \
+		--tag $(REGISTRY)/InteraOne-api:$(VERSION) \
+		--tag $(REGISTRY)/InteraOne-api:latest \
 		--push -f apps/api/Dockerfile apps/api
 
 docker-build-web: docker-setup-builder ## Build Web image
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/voxora-web:$(VERSION) \
-		--tag $(REGISTRY)/voxora-web:latest \
+		--tag $(REGISTRY)/InteraOne-web:$(VERSION) \
+		--tag $(REGISTRY)/InteraOne-web:latest \
 		--push -f apps/web/Dockerfile apps/web
 
 docker-build-ai: docker-setup-builder ## Build AI worker image
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/voxora-ai:$(VERSION) \
-		--tag $(REGISTRY)/voxora-ai:latest \
+		--tag $(REGISTRY)/InteraOne-ai:$(VERSION) \
+		--tag $(REGISTRY)/InteraOne-ai:latest \
 		--push -f apps/ai/Dockerfile apps/ai
 
 docker-images: docker-build-api docker-build-web docker-build-ai ## Build all images
@@ -282,16 +282,16 @@ docker-images: docker-build-api docker-build-web docker-build-ai ## Build all im
 docker-release: docker-setup-builder ## Build and push all images with RELEASE_VERSION (e.g. make docker-release RELEASE_VERSION=0.9.0-beta)
 	@[ "$(RELEASE_VERSION)" ] || { echo "$(RED)❌ RELEASE_VERSION is required$(NC)  usage: make docker-release RELEASE_VERSION=0.9.0-beta"; exit 1; }
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/voxora-api:$(RELEASE_VERSION) \
-		--tag $(REGISTRY)/voxora-api:latest \
+		--tag $(REGISTRY)/InteraOne-api:$(RELEASE_VERSION) \
+		--tag $(REGISTRY)/InteraOne-api:latest \
 		--push -f apps/api/Dockerfile apps/api
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/voxora-web:$(RELEASE_VERSION) \
-		--tag $(REGISTRY)/voxora-web:latest \
+		--tag $(REGISTRY)/InteraOne-web:$(RELEASE_VERSION) \
+		--tag $(REGISTRY)/InteraOne-web:latest \
 		--push -f apps/web/Dockerfile apps/web
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/voxora-ai:$(RELEASE_VERSION) \
-		--tag $(REGISTRY)/voxora-ai:latest \
+		--tag $(REGISTRY)/InteraOne-ai:$(RELEASE_VERSION) \
+		--tag $(REGISTRY)/InteraOne-ai:latest \
 		--push -f apps/ai/Dockerfile apps/ai
 	@echo "$(GREEN)✅ Released $(RELEASE_VERSION) to Docker Hub$(NC)"
 

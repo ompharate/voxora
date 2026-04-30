@@ -1,5 +1,5 @@
 {
-  "name": "voxora",
+  "name": "InteraOne",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -23,6 +23,8 @@
   },
   "packageManager": "pnpm@9.15.0",
   "dependencies": {
+    "@ompharate/better-context": "^1.0.0",
+    "dodopayments": "^2.27.0",
     "zod": "^4.3.6"
   }
 }

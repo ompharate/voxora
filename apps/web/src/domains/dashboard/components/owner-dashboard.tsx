@@ -52,8 +52,8 @@ const contactsGrowthData = [
 ];
 
 const conversationStatusData = [
-  { name: "Open", value: 24, color: "#f59e0b" },
-  { name: "Closed", value: 156, color: "#10b981" },
+  { name: "Open", value: 24, color: "var(--color-warning)" },
+  { name: "Closed", value: 156, color: "var(--color-success)" },
 ];
 
 const widgetConversionData = [
@@ -64,23 +64,23 @@ const widgetConversionData = [
 const chartConfig = {
   conversations: {
     label: "Conversations",
-    color: "#10b981",
+    color: "var(--color-success)",
   },
   messages: {
     label: "Messages",
-    color: "#3b82f6",
+    color: "var(--color-info)",
   },
   contacts: {
     label: "Contacts",
-    color: "#8b5cf6",
+    color: "var(--color-primary)",
   },
   visitors: {
     label: "Visitors",
-    color: "#f59e0b",
+    color: "var(--color-warning)",
   },
   chats: {
     label: "Chats",
-    color: "#10b981",
+    color: "var(--color-success)",
   },
 };
 
@@ -261,7 +261,7 @@ export function OwnerDashboard() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">Conversion Rate</span>
               </div>
-              <span className="text-2xl font-bold text-emerald-500">23.1%</span>
+              <span className="text-2xl font-bold text-success">23.1%</span>
             </div>
           </div>
           <ChartContainer config={chartConfig} className="h-[200px]">
@@ -270,7 +270,7 @@ export function OwnerDashboard() {
               <XAxis dataKey="metric" />
               <YAxis />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="value" fill="#10b981" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="value" fill="var(--color-success)" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ChartContainer>
         </Card>

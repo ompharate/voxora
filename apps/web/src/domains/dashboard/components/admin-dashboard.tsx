@@ -55,19 +55,19 @@ const activityData = [
 const chartConfig = {
   time: {
     label: "Response Time (min)",
-    color: "#3b82f6",
+    color: "var(--color-info)",
   },
   conversations: {
     label: "Conversations",
-    color: "#10b981",
+    color: "var(--color-success)",
   },
   messages: {
     label: "Messages",
-    color: "#f59e0b",
+    color: "var(--color-warning)",
   },
   avgResponse: {
     label: "Avg Response (min)",
-    color: "#8b5cf6",
+    color: "var(--color-primary)",
   },
 };
 
@@ -256,8 +256,8 @@ export function AdminDashboard() {
         <h3 className="text-lg font-semibold mb-4">Today's Summary</h3>
         <div className="grid gap-4 md:grid-cols-3">
           <div className="flex items-center gap-4">
-            <div className="rounded-full bg-emerald-500/10 p-3">
-              <MessageSquare className="h-6 w-6 text-emerald-500" />
+            <div className="rounded-full bg-success/10 p-3">
+              <MessageSquare className="h-6 w-6 text-success" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Messages Sent</p>
@@ -265,8 +265,8 @@ export function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="rounded-full bg-blue-500/10 p-3">
-              <Activity className="h-6 w-6 text-blue-500" />
+            <div className="rounded-full bg-info/10 p-3">
+              <Activity className="h-6 w-6 text-info" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Conversations Created</p>
@@ -274,8 +274,8 @@ export function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="rounded-full bg-purple-500/10 p-3">
-              <Users className="h-6 w-6 text-purple-500" />
+            <div className="rounded-full bg-primary/10 p-3">
+              <Users className="h-6 w-6 text-primary" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Closed Conversations</p>

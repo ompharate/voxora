@@ -77,6 +77,7 @@ export const useAuthStore = create<AuthState>()(
             if (accessToken) authApi.setToken(accessToken);
             if (loginOrg?._id) authApi.setActiveOrgId(loginOrg._id);
             if (role) authApi.setOrgRole(role);
+            if (loginOrg?.plan) authApi.setOrgPlan(loginOrg.plan);
 
             authApi.setUser(user);
             set({ 
@@ -106,6 +107,7 @@ export const useAuthStore = create<AuthState>()(
             if (accessToken) authApi.setToken(accessToken);
             if (signupOrg?._id) authApi.setActiveOrgId(signupOrg._id);
             if (role) authApi.setOrgRole(role);
+            if (signupOrg?.plan) authApi.setOrgPlan(signupOrg.plan);
 
             authApi.setUser(user);
             set({ 
@@ -165,6 +167,9 @@ export const useAuthStore = create<AuthState>()(
         if (org?._id) {
           authApi.setActiveOrgId(org._id);
         }
+        if (org?.plan) {
+          authApi.setOrgPlan(org.plan);
+        }
       },
 
       setAdminRegistered: (isRegistered: boolean) => {
@@ -183,6 +188,9 @@ export const useAuthStore = create<AuthState>()(
         // Sync organization ID to localStorage after rehydration
         if (state?.organization?._id) {
           authApi.setActiveOrgId(state.organization._id);
+        }
+        if (state?.organization?.plan) {
+          authApi.setOrgPlan(state.organization.plan);
         }
       },
     }

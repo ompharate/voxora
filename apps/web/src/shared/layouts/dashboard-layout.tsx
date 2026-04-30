@@ -7,6 +7,7 @@ import {
   BookOpen,
   Bot,
   ChevronRight,
+  CreditCard,
   Inbox,
   Crown,
   LogOut,
@@ -15,6 +16,7 @@ import {
   Moon,
   Search,
   QrCode,
+  Paintbrush,
   Settings,
   Sun,
   TriangleAlert,
@@ -27,7 +29,15 @@ import {
 import { useAuth } from "@/domains/auth/hooks/useAuth";
 import { useLogout } from "@/domains/auth/hooks/useLogout";
 import { authApi } from "@/domains/auth/api/auth.api";
+import {
+  canAccessEeFeature,
+  getInteraOneMode,
+  isEeEnabledByEnv,
+  isEeModulePresent,
+} from "@/shared/ee";
 import { OrgSwitcher } from "@/shared/components/org-switcher";
+import { UsageBanner } from "@/shared/components/usage-banner";
+import { UpgradeModalRoot } from "@/shared/components/upgrade-modal";
 import { useTheme } from "@/shared/theme/theme-context";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -52,6 +62,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { data: widgetData } = useWidget();
 
   const orgRole: OrgRole | null = isAuthenticated ? authApi.getOrgRole() : null;
+  const canAccessContacts = canAccessEeFeature("contacts");
+  const canAccessWhiteLabel = canAccessEeFeature("white-label");
+  const billingVisible =
+    getInteraOneMode() === "cloud" && isEeEnabledByEnv() && isEeModulePresent();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -84,9 +98,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const base = [
       { label: "Dashboard", to: "/dashboard" },
       { label: "Inbox", to: "/dashboard/conversations/inbox" },
-      { label: "All Contacts", to: "/dashboard/contacts/all-contacts" },
-      { label: "Segments", to: "/dashboard/contacts/segments" },
     ];
+
+    if (canAccessContacts) {
+      base.push(
+        { label: "All Contacts", to: "/dashboard/contacts/all-contacts" },
+        { label: "Segments", to: "/dashboard/contacts/segments" },
+      );
+    }
 
     if (orgRole === "admin" || orgRole === "owner") {
       base.push(
@@ -100,6 +119,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
 
     if (orgRole === "owner") {
+      if (billingVisible) {
+        base.push({ label: "Billing", to: "/dashboard/settings/billing" });
+      }
+
+      if (canAccessWhiteLabel) {
+        base.push({ label: "White-label", to: "/dashboard/settings/white-label" });
+      }
+
       base.push(
         { label: "QR Codes", to: "/dashboard/widget/qr" },
         { label: "General Settings", to: "/dashboard/settings/general" },
@@ -108,7 +135,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
 
     return base;
-  }, [orgRole]);
+  }, [billingVisible, canAccessContacts, canAccessWhiteLabel, orgRole]);
 
   const breadcrumbs = useMemo(() => {
     const parts = location.pathname.split("/").filter(Boolean);
@@ -232,25 +259,27 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             ))}
           </div>
 
-          <div className="space-y-1">
-            <p className="px-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Contacts</p>
-            {[
-              { label: "All Contacts", to: "/dashboard/contacts/all-contacts", icon: Users2 },
-              { label: "Segments", to: "/dashboard/contacts/segments", icon: UsersRound },
-            ].map((item) => (
-              <Link key={item.to} to={item.to}>
-                <Button
-                  variant="ghost"
-                  className={`w-full flex items-center px-3 py-2 text-sm cursor-pointer rounded-lg justify-start ${isActive(item.to, true)
-                    ? "text-primary bg-primary/5 font-medium"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"}`}
-                >
-                  <item.icon className="h-4 w-4 mr-3" />
-                  <span>{item.label}</span>
-                </Button>
-              </Link>
-            ))}
-          </div>
+          {canAccessContacts && (
+            <div className="space-y-1">
+              <p className="px-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Contacts</p>
+              {[
+                { label: "All Contacts", to: "/dashboard/contacts/all-contacts", icon: Users2 },
+                { label: "Segments", to: "/dashboard/contacts/segments", icon: UsersRound },
+              ].map((item) => (
+                <Link key={item.to} to={item.to}>
+                  <Button
+                    variant="ghost"
+                    className={`w-full flex items-center px-3 py-2 text-sm cursor-pointer rounded-lg justify-start ${isActive(item.to, true)
+                      ? "text-primary bg-primary/5 font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"}`}
+                  >
+                    <item.icon className="h-4 w-4 mr-3" />
+                    <span>{item.label}</span>
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          )}
 
           {(orgRole === "admin" || orgRole === "owner") && (
             <div className="space-y-1">
@@ -353,9 +382,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 Settings
               </p>
               {[
-                { label: "General", to: "/dashboard/settings/general", icon: Settings },
-                { label: "Danger Zone", to: "/dashboard/settings/danger-zone", icon: TriangleAlert },
-              ].map((item) => (
+                { label: "General", to: "/dashboard/settings/general", icon: Settings, visible: true },
+                { label: "Billing", to: "/dashboard/settings/billing", icon: CreditCard, visible: billingVisible },
+                { label: "White-label", to: "/dashboard/settings/white-label", icon: Paintbrush, visible: canAccessWhiteLabel },
+                { label: "Danger Zone", to: "/dashboard/settings/danger-zone", icon: TriangleAlert, visible: true },
+              ]
+                .filter((item) => item.visible)
+                .map((item) => (
                 <Link key={item.to} to={item.to}>
                   <Button
                     variant="ghost"
@@ -562,6 +595,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
               ) : (
                 <div className="min-h-[calc(100vh-4rem)] rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-6 lg:p-8">
+                  <UsageBanner />
                   {children}
                 </div>
               )}
@@ -590,6 +624,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
       )}
+
+      {/* Global upgrade modal — triggered by 429 responses or socket limit events */}
+      <UpgradeModalRoot />
     </div>
   );
 }

@@ -1,12 +1,19 @@
-# Voxora - Project Context for AI Assistants
+# InteraOne - Project Context for AI Assistants
 
 ## Project Overview
-Voxora is a real-time chat support platform built as a **Turborepo monorepo** with separate API and web frontend applications. It enables teams to provide customer support through real-time conversations with features like team management, agent assignment, and widget embedding.
+InteraOne is a real-time chat support platform built as a **Turborepo monorepo** with separate API and web frontend applications. It enables teams to provide customer support through real-time conversations with features like team management, agent assignment, and widget embedding.
 
 ### Deployment Models
-Voxora is designed to be highly flexible in how it is deployed and consumed:
-- **Open Source (OSS) Self-Hosted**: The entire platform can be self-hosted on your own infrastructure using Docker. You maintain complete control over your data, database, and scaling.
-- **Managed Service**: For teams that don't want to manage infrastructure, Voxora can be offered as a fully managed, multi-tenant cloud service (e.g., `voxora.cloud`), providing instant setup and automated maintenance.
+InteraOne is designed to be highly flexible in how it is deployed and consumed:
+- **Open Source (OSS) Self-Hosted**: The core platform can be self-hosted on your own infrastructure using Docker. You maintain complete control over your data, database, and scaling.
+- **Managed Service**: For teams that don't want to manage infrastructure, InteraOne can be offered as a fully managed, multi-tenant cloud service (e.g., `InteraOne.com`), providing instant setup and automated maintenance.
+
+### Source-Available Dual-Licensing (Enterprise Edition)
+InteraOne follows an Open Core architectural pattern (similar to Cal.com) using a dual-license model:
+- **Core Platform**: Open Source (InteraOne Custom License).
+- **Enterprise Edition (`ee/`)**: Protected by a strict **Commercial License** located at `ee/LICENSE`. 
+While the `ee/` folder is visible in the public repository so anyone can read and audit the code, it is illegal to use the features inside it for commercial purposes without a paid license. 
+At runtime, the backend enforces this by requiring a valid `INTERAONE_LICENSE_KEY` in the environment variables to unlock premium UI and API functionality. If the key is missing or invalid, the platform degrades gracefully to the Open Source tier.
 
 ## Technology Stack
 
@@ -113,7 +120,7 @@ Located in `apps/web/components/ui/`:
 ## Authentication & Authorization
 
 ### Multi-Tenant Architecture
-Voxora uses a strict multi-tenant architecture where data is isolated by `organizationId`.
+InteraOne uses a strict multi-tenant architecture where data is isolated by `organizationId`.
 - **Organization**: The top-level tenant.
 - **Membership**: Links a User to an Organization with a specific Role (Owner, Admin, Agent).
 - **User**: Global identity containing only email, password, and basic profile info. No global roles.
@@ -176,6 +183,12 @@ Generate JWT Access Token (7d) + Refresh Token (30d)
 - **Fields**: organizationId, displayName, backgroundColor, logoUrl, publicKey, createdAt
 - **Usage**: Embedded chat widget configuration, securely retrieves API context using publicKey.
 
+### Billing & Usage
+- **BillingSubscription**: Stores Dodo subscription state (providerId, plan, status, currentPeriodEnd, cancelAtPeriodEnd).
+- **BillingCheckoutIntent**: Tracks user intent ("Shopping Cart") before they complete the Dodo checkout. Auto-deletes after 90 days.
+- **BillingWebhookEvent**: Idempotency guard and audit log for every incoming Dodo webhook.
+- **UsageRecord**: Tracks monthly resource usage (e.g., messagesUsed) for the organization, resetting each billing period.
+
 ## API Conventions
 
 ### Response Format
@@ -220,7 +233,7 @@ Generate JWT Access Token (7d) + Refresh Token (30d)
 
 ## Environment Variables
 
-Voxora utilizes a strict tiered environment variable strategy to manage local, dockerized, and production deployments:
+InteraOne utilizes a strict tiered environment variable strategy to manage local, dockerized, and production deployments:
 1. `.env.example`: The template file checked into version control documenting all required variables.
 2. `.env`: The standard local development environment variables (used when running `npm run dev` directly on the host machine).
 3. `.env.docker`: Specific overrides used exclusively when running the entire stack via the one-click `docker-compose.yml` wrapper.
@@ -229,7 +242,7 @@ Voxora utilizes a strict tiered environment variable strategy to manage local, d
 ```env
 NODE_ENV=development
 PORT=3002
-MONGODB_URI=mongodb://admin:dev123@localhost:27017/voxora-chat-dev
+MONGODB_URI=mongodb://admin:dev123@localhost:27017/InteraOne-chat-dev
 REDIS_HOST=localhost
 REDIS_PORT=6379
 JWT_SECRET=your-secret-key
@@ -246,7 +259,7 @@ NEXT_PUBLIC_SOCKET_URL=http://localhost:3002
 ## Real-time Features (Socket.IO & Redis)
 
 ### Redis Pub/Sub Architecture
-Voxora uses Redis Pub/Sub to coordinate AI responses, webhooks, and chat events across scalable backend instances.
+InteraOne uses Redis Pub/Sub to coordinate AI responses, webhooks, and chat events across scalable backend instances.
 - **Keys**: All Redis keys are strictly namespaced by tenant: `org:{orgId}:...`
 
 ### Socket Events
@@ -260,6 +273,7 @@ Voxora uses Redis Pub/Sub to coordinate AI responses, webhooks, and chat events 
 Heavy tasks are offloaded to **BullMQ** processing queues backed by Redis:
 - **`document-ingestion` Queue**: Converts uploaded PDFs/Word/URLs into embedded Qdrant vectors for the RAG Knowledge Base.
 - **`ai-processing` Queue**: The AI Worker listens here to process widget chat messages asynchronously, retrieving RAG context and generating LLM responses without blocking the main Express API event loop.
+- **`subscription-expiry` Queue**: An Enterprise-only repeatable job that runs hourly to scan for and automatically downgrade organizations whose Dodo subscriptions have expired or exceeded their past-due grace period.
 
 ### Best Practices
 - Validate all socket events
@@ -292,7 +306,7 @@ sendWelcomeEmail(to, name, role)
 ## Deployment & Docker Setup
 
 ### One-Click Script
-Voxora provides an intuitive one-click setup script at the root of the repository:
+InteraOne provides an intuitive one-click setup script at the root of the repository:
 ```bash
 make local-up    # Boots all necessary Docker services for local development
 make local-down  # Tears down local containers securely
@@ -407,11 +421,18 @@ npm run lint
 
 ## Current State & Recent Accomplishments
 
-Voxora recently completed a **Multi-Tenant Architecture Migration**, establishing robust data separation strategies:
-- **Tenant Isolation**: Introduced `Organization` and `Membership` models; removed global user roles.
-- **Unified Auth**: Consolidated agent and admin logins using a dynamic `/select-org` routing flow.
-- **AI & RAG Localization**: Mandated `organizationId` checks across the `Qdrant` vector store, document ingestion pipelines, and the LLM context builder.
-- **Member Management**: Owners/Admins manage roles seamlessly in the `Admin > Members` portal.
+InteraOne recently completed two major architectural transitions:
+
+1. **Multi-Tenant Architecture Migration**:
+   - **Tenant Isolation**: Introduced `Organization` and `Membership` models; removed global user roles.
+   - **Unified Auth**: Consolidated agent and admin logins using a dynamic `/select-org` routing flow.
+   - **AI & RAG Localization**: Mandated `organizationId` checks across the `Qdrant` vector store, document ingestion pipelines, and the LLM context builder.
+
+2. **SaaS Subscription Billing Migration (Open Core)**:
+   - **Pure SaaS Model**: Transitioned from one-time payments to a fully recurring subscription model backed by **Dodo Payments**.
+   - **Open Core Separation**: Extracted all proprietary billing logic, webhook parsing, and feature gating into an isolated `ee/` (Enterprise Edition) module that dynamically loads at runtime without build steps.
+   - **Idempotency & Auditing**: Implemented `BillingWebhookEvent` to strictly guard against duplicate webhook processing from payment providers.
+   - **Automated Lifecycle Enforcement**: Deployed an EE-only BullMQ worker (`subscription-expiry`) that enforces a 2-day dunning grace period and auto-downgrades organizations if their subscription lapses.
 
 ## Future Considerations
 
@@ -424,6 +445,6 @@ Voxora recently completed a **Multi-Tenant Architecture Migration**, establishin
 
 ---
 
-**Last Updated**: February 2026
+**Last Updated**: April 2026
 **Maintainers**: Vibe Coders Team
-**AI Assistant**: Claude (Anthropic)
+**AI Assistant**: Gemini 3.1 Pro (High)

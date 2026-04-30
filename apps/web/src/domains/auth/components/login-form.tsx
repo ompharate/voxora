@@ -101,7 +101,7 @@ export function LoginForm() {
         </div>
         <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
         <CardDescription className="text-center">
-          Sign in to your Voxora account
+          Sign in to your InteraOne account
         </CardDescription>
       </CardHeader>
       <CardContent>

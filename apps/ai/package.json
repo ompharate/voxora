@@ -1,7 +1,7 @@
 {
-  "name": "@voxora/ai",
+  "name": "@InteraOne/ai",
   "version": "1.0.0",
-  "description": "Voxora AI processing service — BullMQ worker + Redis Streams",
+  "description": "InteraOne AI processing service — BullMQ worker + Redis Streams",
   "main": "dist/index.js",
   "engines": {
     "node": ">=20"

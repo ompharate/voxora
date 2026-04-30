@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authenticate, requireRole } from "@shared/middleware";
+import { authenticate, requireRole, requireWithinLimit } from "@shared/middleware";
 import { validateRequest } from "@shared/middleware/validation";
 import {
   getKnowledgeItems,
@@ -19,8 +19,8 @@ router.use(authenticate);
 router.use(requireRole("admin"));
 
 router.get("/", getKnowledgeItems);
-router.post("/request-upload", validateRequest(knowledgeSchema.requestUpload), requestFileUpload);
-router.post("/", validateRequest(knowledgeSchema.createText), createTextKnowledge);
+router.post("/request-upload", validateRequest(knowledgeSchema.requestUpload), requireWithinLimit("knowledgeItems"), requestFileUpload);
+router.post("/", validateRequest(knowledgeSchema.createText), requireWithinLimit("knowledgeItems"), createTextKnowledge);
 router.post("/:documentId/confirm", confirmUpload);
 router.post("/:documentId/reindex", reindexKnowledge);
 router.get("/:documentId/view-url", getViewUrl);

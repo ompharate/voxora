@@ -2,7 +2,7 @@
 set -e
 
 # ============================================================
-# Voxora Installation Script
+# InteraOne Installation Script
 # Supports: Amazon Linux 2023 (more OS support coming soon)
 # ============================================================
 
@@ -242,25 +242,25 @@ check_ports() {
 # Prompt for configuration
 prompt_config() {
     echo ""
-    log_info "=== Voxora Configuration ==="
+    log_info "=== InteraOne Configuration ==="
     echo ""
     
     # API Host
-    read -p "Enter API domain (e.g., apivoxora.voxora.cloud): " API_HOST
+    read -p "Enter API domain (e.g., apiInteraOne.InteraOne.cloud): " API_HOST
     if [ -z "$API_HOST" ]; then
         log_error "API domain cannot be empty"
         exit 1
     fi
     
     # Web Host
-    read -p "Enter Web domain (e.g., app.voxora.cloud): " WEB_HOST
+    read -p "Enter Web domain (e.g., app.InteraOne.cloud): " WEB_HOST
     if [ -z "$WEB_HOST" ]; then
         log_error "Web domain cannot be empty"
         exit 1
     fi
     
     # CDN Host
-    read -p "Enter CDN domain (e.g., cdn.voxora.cloud): " CDN_HOST
+    read -p "Enter CDN domain (e.g., cdn.InteraOne.cloud): " CDN_HOST
     if [ -z "$CDN_HOST" ]; then
         log_error "CDN domain cannot be empty"
         exit 1
@@ -322,7 +322,7 @@ NODE_ENV=production
 PORT=3002
 
 # MongoDB (service hostname: mongodb)
-MONGODB_URI=mongodb://admin:$MONGO_PASSWORD@mongodb:27017/voxora-chat?authSource=admin
+MONGODB_URI=mongodb://admin:$MONGO_PASSWORD@mongodb:27017/InteraOne-chat?authSource=admin
 
 # Redis (service hostname: redis)
 REDIS_HOST=redis
@@ -353,7 +353,7 @@ EMAIL_PORT=587
 EMAIL_SECURE=true
 EMAIL_USER=your-email@example.com
 EMAIL_PASS=your-email-password
-EMAIL_FROM=noreply@voxora.cloud
+EMAIL_FROM=noreply@InteraOne.cloud
 EOF
     
     # apps/web/.env.docker
@@ -365,7 +365,7 @@ EOF
 
 NEXT_PUBLIC_API_URL=https://$API_HOST/api/v1
 NEXT_PUBLIC_SOCKET_URL=https://$API_HOST
-NEXT_PUBLIC_CDN_URL=https://$CDN_HOST/voxora-widget/v1/voxora.js?v=2
+NEXT_PUBLIC_CDN_URL=https://$CDN_HOST/InteraOne-widget/v1/InteraOne.js?v=2
 EOF
     
     # apps/widget/.env.docker
@@ -396,7 +396,7 @@ NODE_ENV=production
 PORT=3003
 
 # MongoDB (service hostname: mongodb)
-MONGODB_URI=mongodb://admin:$MONGO_PASSWORD@mongodb:27017/voxora-chat?authSource=admin
+MONGODB_URI=mongodb://admin:$MONGO_PASSWORD@mongodb:27017/InteraOne-chat?authSource=admin
 
 # Redis (service hostname: redis)
 REDIS_HOST=redis
@@ -409,7 +409,7 @@ MINIO_PORT=9001
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=$MINIO_PASSWORD
 MINIO_USE_SSL=false
-MINIO_BUCKET_NAME=voxora-chat
+MINIO_BUCKET_NAME=InteraOne-chat
 
 # Qdrant (service hostname: qdrant)
 QDRANT_URL=http://qdrant:6333
@@ -438,7 +438,7 @@ EOF
 
 # Start services
 start_services() {
-    log_info "Starting Voxora services..."
+    log_info "Starting InteraOne services..."
     
     cd docker
     docker compose up -d
@@ -460,10 +460,10 @@ start_services() {
 print_success() {
     echo ""
     echo "============================================================"
-    log_success "Voxora has been installed successfully!"
+    log_success "InteraOne has been installed successfully!"
     echo "============================================================"
     echo ""
-    echo "Your Voxora instance is running at:"
+    echo "Your InteraOne instance is running at:"
     echo "  • Web:  https://$WEB_HOST"
     echo "  • API:  https://$API_HOST/api/v1"
     echo "  • CDN:  https://$CDN_HOST"
@@ -497,7 +497,7 @@ print_success() {
 main() {
     echo ""
     echo "============================================================"
-    echo "           Voxora Installation Script"
+    echo "           InteraOne Installation Script"
     echo "============================================================"
     echo ""
     

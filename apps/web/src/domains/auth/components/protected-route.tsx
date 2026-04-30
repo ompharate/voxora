@@ -1,5 +1,6 @@
 
-import { useEffect, ReactNode } from "react";
+import { useEffect } from "react";
+import type { ReactNode } from "react";
 import { useAuth } from "@/domains/auth/hooks";
 import { authApi } from "@/domains/auth/api/auth.api";
 

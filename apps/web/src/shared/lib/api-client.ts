@@ -1,5 +1,7 @@
 import type { RequestOptions } from "../types/types"
 
+import { triggerUpgradeModal } from "../components/upgrade-modal";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3002/api/v1"
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
@@ -25,6 +27,12 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     }
     throw new Error("Invalid response format");
+  }
+
+  // Intercept 429 limit reached errors
+  if (res.status === 429 && data.data?.limitType && data.data?.upgradeRequired) {
+    triggerUpgradeModal(data.data);
+    throw new Error(data.message || "Limit reached");
   }
 
   // If response includes success: false, treat as error

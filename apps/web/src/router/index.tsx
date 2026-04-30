@@ -21,8 +21,13 @@ import { KnowledgeStaticPage } from "@/domains/knowledge/pages/static-page";
 import { KnowledgeRealtimePage } from "@/domains/knowledge/pages/realtime-page";
 import { GeneralSettingsPage } from "@/domains/settings/pages/general-page";
 import { DangerZonePage } from "@/domains/settings/pages/danger-zone-page";
+import { BillingPage } from "@/domains/settings/pages/billing-page";
+import { BillingSuccessPage } from "@/domains/settings/pages/billing-success-page";
+import { BillingFailedPage } from "@/domains/settings/pages/billing-failed-page";
+import { WhiteLabelPage } from "@/domains/settings/pages/white-label-page";
 import { CreateOrganizationPage } from "@/domains/organization/pages/create-organization-page";
 import { DashboardLayout } from "@/shared/layouts/dashboard-layout";
+import { EeFeatureGate } from "@/shared/components/ee-feature-gate";
 import QRCodeGeneratorPage from "@/domains/widget/pages/qr-generator-page";
 import QRScannerLandingPage from "@/domains/widget/pages/qr-scanner-landing-page";
 
@@ -123,7 +128,9 @@ const router = createBrowserRouter([
         path: "/dashboard/contacts/all-contacts",
         element: (
             <DashboardLayout>
-                <ContactsPage />
+                <EeFeatureGate feature="contacts">
+                    <ContactsPage />
+                </EeFeatureGate>
             </DashboardLayout>
         ),
     },
@@ -131,7 +138,9 @@ const router = createBrowserRouter([
         path: "/dashboard/contacts/segments",
         element: (
             <DashboardLayout>
-                <ContactSegmentsPage />
+                <EeFeatureGate feature="contacts">
+                    <ContactSegmentsPage />
+                </EeFeatureGate>
             </DashboardLayout>
         ),
     },
@@ -192,6 +201,40 @@ const router = createBrowserRouter([
         element: (
             <DashboardLayout>
                 <GeneralSettingsPage />
+            </DashboardLayout>
+        ),
+    },
+    {
+        path: "/dashboard/settings/billing",
+        element: (
+            <DashboardLayout>
+                <BillingPage />
+            </DashboardLayout>
+        ),
+    },
+    {
+        path: "/dashboard/settings/billing/success",
+        element: (
+            <DashboardLayout>
+                <BillingSuccessPage />
+            </DashboardLayout>
+        ),
+    },
+    {
+        path: "/dashboard/settings/billing/failed",
+        element: (
+            <DashboardLayout>
+                <BillingFailedPage />
+            </DashboardLayout>
+        ),
+    },
+    {
+        path: "/dashboard/settings/white-label",
+        element: (
+            <DashboardLayout>
+                <EeFeatureGate feature="white-label">
+                    <WhiteLabelPage />
+                </EeFeatureGate>
             </DashboardLayout>
         ),
     },

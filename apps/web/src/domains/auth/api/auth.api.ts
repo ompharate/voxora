@@ -103,6 +103,17 @@ class AuthApi {
     localStorage.setItem("orgRole", role);
   }
 
+  setOrgPlan(plan: string): void {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("orgPlan", plan);
+  }
+
+  getOrgPlan(): "free" | "pro" | "proplus" | "enterprise" | null {
+    if (typeof window === "undefined") return null;
+    const plan = localStorage.getItem("orgPlan");
+    return plan as "free" | "pro" | "proplus" | "enterprise" | null;
+  }
+
   getOrgRole(): "owner" | "admin" | "agent" | null {
     if (typeof window === "undefined") return null;
     const role = localStorage.getItem("orgRole");
@@ -113,6 +124,7 @@ class AuthApi {
     if (typeof window === "undefined") return;
     localStorage.removeItem("activeOrgId");
     localStorage.removeItem("orgRole");
+    localStorage.removeItem("orgPlan");
   }
 
   logout(): void {

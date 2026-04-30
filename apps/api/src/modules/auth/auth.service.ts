@@ -107,7 +107,13 @@ export class AuthService {
       success: true,
       data: {
         user: { id: user._id, name: user.name, email: user.email },
-        organization: { id: organization._id, name: organization.name, slug: organization.slug },
+        organization: {
+          id: organization._id,
+          name: organization.name,
+          slug: organization.slug,
+          plan: organization.plan,
+          whiteLabelEnabled: organization.whiteLabelEnabled,
+        },
         role: "owner",
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
@@ -131,7 +137,7 @@ export class AuthService {
     const memberships = await Membership.find({
       userId: user._id,
       inviteStatus: "active",
-    }).populate("organizationId", "name slug logoUrl");
+    }).populate("organizationId", "name slug logoUrl plan whiteLabelEnabled");
 
     if (memberships.length === 0) {
       return {

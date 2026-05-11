@@ -286,11 +286,21 @@ prompt_config() {
         EMAIL_PROVIDER="resend"
     fi
     
-    # Generate secure passwords
-    MONGO_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
-    REDIS_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
-    MINIO_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
-    JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
+    # Generate (or reuse) secure passwords
+    # On re-runs, reuse the existing passwords from docker/.env so that the
+    # already-initialised MongoDB volume stays in sync with the credentials.
+    if [ -f "docker/.env" ] && grep -q "^MONGO_ROOT_PASSWORD=" docker/.env; then
+        log_info "Existing docker/.env detected — reusing database passwords to preserve MongoDB data."
+        MONGO_PASSWORD=$(grep "^MONGO_ROOT_PASSWORD=" docker/.env | cut -d= -f2-)
+        REDIS_PASSWORD=$(grep "^REDIS_PASSWORD=" docker/.env | cut -d= -f2-)
+        MINIO_PASSWORD=$(grep "^MINIO_ROOT_PASSWORD=" docker/.env | cut -d= -f2-)
+        JWT_SECRET=$(grep "^JWT_SECRET=" docker/.env | cut -d= -f2-)
+    else
+        MONGO_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+        REDIS_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+        MINIO_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+        JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
+    fi
     
     echo ""
     log_success "Configuration collected successfully"
@@ -329,6 +339,9 @@ CDN_HOST=$CDN_HOST
 # Widget runtime configuration (baked into the widget JS at deployment)
 API_URL_PRODUCTION=https://$API_HOST
 CDN_URL_PRODUCTION=https://$CDN_HOST
+
+# JWT (used for re-run password recovery)
+JWT_SECRET=$JWT_SECRET
 EOF
     
     # apps/api/.env.docker

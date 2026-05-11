@@ -6,7 +6,7 @@
   "engines": {
     "node": ">=20"
   },
-  "main": "dist/voxora.js",
+  "main": "dist/interaone.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build && vite build -c vite.lib.config.ts",

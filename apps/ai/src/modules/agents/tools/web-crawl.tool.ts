@@ -19,7 +19,7 @@ export class WebCrawlTool implements Tool {
 
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; VoxoraBot/1.0; +http://voxora.com)'
+          'User-Agent': 'Mozilla/5.0 (compatible; InteraOneBot/1.0; +http://interaone.com)'
         }
       });
       let html = await response.text();

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ThemeContext, type ThemeContextValue, type ThemeMode } from "./theme-context";
 
-const STORAGE_KEY = "voxora-theme";
+const STORAGE_KEY = "InteraOne-theme";
 
 function getPreferredTheme(): ThemeMode {
   if (typeof window === "undefined") return "light";

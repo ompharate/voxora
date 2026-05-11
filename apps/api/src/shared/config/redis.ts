@@ -2,8 +2,17 @@ import { createClient } from "redis";
 import config from "./index";
 import logger from "../utils/logger";
 
+function buildRedisUrl(): string {
+  if (config.redis.redisUri) return config.redis.redisUri;
+  if (config.redis.password) {
+    const encoded = encodeURIComponent(config.redis.password);
+    return `redis://:${encoded}@${config.redis.host}:${config.redis.port}`;
+  }
+  return `redis://${config.redis.host}:${config.redis.port}`;
+}
+
 export const redisClient = createClient({
-  url: `redis://:${config.redis.password}@${config.redis.host}:${config.redis.port}`,
+  url: buildRedisUrl(),
   socket: {
     reconnectStrategy: (retries) => Math.min(retries * 50, 500),
   },

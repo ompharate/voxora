@@ -1,11 +1,11 @@
 import axios from "axios";
 import mongoose from "mongoose";
 import { Tool, ToolExecutionContext, ToolParameterSchema } from "../agent.types";
-import { connectDB, ContactModel, ConversationModel } from "../../../shared/db/db";
+import { connectDB, ContactModel, ConversationModel } from "../../../infrastructure/db";
 
 export class UpdateContactProfileTool implements Tool {
   readonly name = "update_contact_profile";
-  readonly description = "Persist visitor contact information (name, email, phone) to Voxora contacts database. Use this immediately when the visitor shares contact details.";
+  readonly description = "Persist visitor contact information (name, email, phone) to InteraOne contacts database. Use this immediately when the visitor shares contact details.";
 
   readonly parameters: Record<string, ToolParameterSchema> = {
     name: {
@@ -204,40 +204,40 @@ export class UpdateContactProfileTool implements Tool {
       timelineDetail,
     } = input;
 
-      const apiUrl = (process.env.AI_CONTACT_API_URL || "http://localhost:3002/api/v1").replace(/\/$/, "");
-      const secret = process.env.AI_TOOL_SECRET;
+    const apiUrl = (process.env.API_URL || "http://localhost:3002/api/v1").replace(/\/$/, "");
+    const secret = process.env.AI_TOOL_SECRET;
 
-      const response = await axios.post(
-        `${apiUrl}/contacts/ai/upsert`,
-        {
-          organizationId,
-          conversationId,
-          ...(name ? { name } : {}),
-          ...(email ? { email } : {}),
-          ...(phone ? { phone } : {}),
-          ...(company ? { company } : {}),
-          ...(tags && tags.length > 0 ? { tags } : {}),
-          ...(note ? { note } : {}),
-          ...(status ? { status } : {}),
-          ...(sentiment ? { sentiment } : {}),
-          ...(summary ? { summary } : {}),
-          ...(topics && topics.length > 0 ? { topics } : {}),
-          ...(timelineLabel ? { timelineLabel } : {}),
-          ...(timelineDetail ? { timelineDetail } : {}),
+    const response = await axios.post(
+      `${apiUrl}/contacts/ai/upsert`,
+      {
+        organizationId,
+        conversationId,
+        ...(name ? { name } : {}),
+        ...(email ? { email } : {}),
+        ...(phone ? { phone } : {}),
+        ...(company ? { company } : {}),
+        ...(tags && tags.length > 0 ? { tags } : {}),
+        ...(note ? { note } : {}),
+        ...(status ? { status } : {}),
+        ...(sentiment ? { sentiment } : {}),
+        ...(summary ? { summary } : {}),
+        ...(topics && topics.length > 0 ? { topics } : {}),
+        ...(timelineLabel ? { timelineLabel } : {}),
+        ...(timelineDetail ? { timelineDetail } : {}),
+      },
+      {
+        headers: {
+          ...(secret ? { "x-ai-tool-secret": secret } : {}),
         },
-        {
-          headers: {
-            ...(secret ? { "x-ai-tool-secret": secret } : {}),
-          },
-          timeout: 10000,
-        },
-      );
+        timeout: 10000,
+      },
+    );
 
-      return {
-        status: "success",
-        message: "Contact profile updated via API",
-        data: response.data?.data?.contact || null,
-      };
+    return {
+      status: "success",
+      message: "Contact profile updated via API",
+      data: response.data?.data?.contact || null,
+    };
   }
 
   private async writeDirectToMongo(input: {
@@ -369,12 +369,12 @@ export class UpdateContactProfileTool implements Tool {
           ...(status ? { status } : {}),
           ...(sentiment || resolvedSummary || normalizedTopics.length > 0
             ? {
-                insights: {
-                  summary: resolvedSummary || "No insights yet.",
-                  sentiment: sentiment || "neutral",
-                  topics: normalizedTopics,
-                },
-              }
+              insights: {
+                summary: resolvedSummary || "No insights yet.",
+                sentiment: sentiment || "neutral",
+                topics: normalizedTopics,
+              },
+            }
             : {}),
           source: "ai",
           lastActivityAt: new Date(),
@@ -385,15 +385,15 @@ export class UpdateContactProfileTool implements Tool {
         },
         ...(normalizedTags.length > 0
           ? {
-              $addToSet: {
-                tags: { $each: normalizedTags },
-              },
-            }
+            $addToSet: {
+              tags: { $each: normalizedTags },
+            },
+          }
           : {}),
         ...(Object.keys(pushOps).length > 0
           ? {
-              $push: pushOps,
-            }
+            $push: pushOps,
+          }
           : {}),
         $setOnInsert: {
           tags: [],

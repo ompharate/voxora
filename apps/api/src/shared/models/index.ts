@@ -1,7 +1,6 @@
 export { User, IUser } from "./User";
 export { Organization, IOrganization } from "./Organization";
 export { Membership, IMembership, MembershipRole } from "./Membership";
-export { Team, ITeam } from "./Team";
 export { Conversation, IConversation, IVisitor } from "./Conversation";
 export { Message, IMessage } from "./Message";
 export { Widget, IWidget } from "./Widget";
@@ -12,3 +11,5 @@ export { BillingWebhookEvent, IBillingWebhookEvent } from "./BillingWebhookEvent
 export { BillingCheckoutIntent, IBillingCheckoutIntent } from "./BillingCheckoutIntent";
 export { UsageRecord, IUsageRecord } from "./UsageRecord";
 export { BillingSubscription, IBillingSubscription, SubscriptionStatus } from "./BillingSubscription";
+export { Notification, INotification } from "./Notification";
+export { AnalyticsEvent, IAnalyticsEvent, AnalyticsEventType } from "./AnalyticsEvent";

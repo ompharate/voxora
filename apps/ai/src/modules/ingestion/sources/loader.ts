@@ -1,26 +1,18 @@
-import { Client as MinioClient } from "minio";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 import { StringDecoder } from "string_decoder";
 import config from "../../../config";
+import { minioClient } from "../../../infrastructure/storage/minio.client";
 import { ContentStreamItem } from "../services/content-stream";
-
-const minio = new MinioClient({
-  endPoint: config.minio.endpoint,
-  port: config.minio.port,
-  useSSL: config.minio.useSSL,
-  accessKey: config.minio.accessKey,
-  secretKey: config.minio.secretKey,
-});
 
 const TEXT_STREAM_SEGMENT_CHARS = parseInt(
   process.env.INGEST_TEXT_STREAM_SEGMENT_CHARS || "100000",
   10,
 );
 
-/** Download a buffer from MinIO */
+ 
 async function fetchBuffer(fileKey: string): Promise<Buffer> {
-  const stream = await minio.getObject(config.minio.bucket, fileKey);
+  const stream = await minioClient.getObject(config.minio.bucket, fileKey);
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
@@ -30,10 +22,10 @@ async function fetchBuffer(fileKey: string): Promise<Buffer> {
 }
 
 async function getObjectStream(fileKey: string) {
-  return minio.getObject(config.minio.bucket, fileKey);
+  return minioClient.getObject(config.minio.bucket, fileKey);
 }
 
-/** Extract plain text from the document buffer based on MIME type */
+ 
 export async function loadDocument(fileKey: string, mimeType: string): Promise<string> {
   const buffer = await fetchBuffer(fileKey);
 

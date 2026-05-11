@@ -12,7 +12,6 @@ export interface IMembership extends Document {
     invitedAt?: Date;
     inviteExpiresAt?: Date;
     activatedAt?: Date;
-    teams: Types.ObjectId[];
     permissions: string[];
     createdAt: Date;
     updatedAt: Date;
@@ -37,7 +36,6 @@ const membershipSchema = new Schema<IMembership>(
         invitedAt: { type: Date, default: null },
         inviteExpiresAt: { type: Date, default: null },
         activatedAt: { type: Date, default: null },
-        teams: [{ type: Schema.Types.ObjectId, ref: "Team" }],
         permissions: [{ type: String }],
     },
     { timestamps: true },

@@ -1,5 +1,5 @@
 /**
- * Voxora Widget - Loader API Client
+ * InteraOne Widget - Loader API Client
  *
  * This class is responsible ONLY for what the LOADER needs:
  *   1. Fetching the public widget appearance config (no auth required)
@@ -36,18 +36,18 @@ export class WidgetAPI {
    */
   async fetchConfig(): Promise<WidgetServerConfig | null> {
     try {
-      const url = `${this.config.apiUrl}/api/v1/widget/config?voxoraPublicKey=${encodeURIComponent(this.config.publicKey)}`;
+      const url = `${this.config.apiUrl}/api/v1/widget/config?InteraOnePublicKey=${encodeURIComponent(this.config.publicKey)}`;
       const response = await fetch(url, { credentials: 'omit' });
 
       if (!response.ok) {
-        console.warn('[VoxoraWidget] Config fetch non-ok:', response.status);
+        console.warn('[InteraOneWidget] Config fetch non-ok:', response.status);
         return null;
       }
 
       const data = (await response.json()) as WidgetConfigApiResponse;
       return data?.data?.config ?? null;
     } catch (err) {
-      console.warn('[VoxoraWidget] Config fetch error:', err);
+      console.warn('[InteraOneWidget] Config fetch error:', err);
       return null;
     }
   }

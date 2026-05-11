@@ -6,7 +6,6 @@ interface Config {
   app: {
     port: number;
     env: string;
-    apiUrl: string;
     clientUrl: string;
     mode: "cloud" | "self-host";
     eeEnabled: boolean;
@@ -14,9 +13,9 @@ interface Config {
   };
   database: {
     mongoUri: string;
-    dbName: string;
   };
   redis: {
+    redisUri?: string;
     host: string;
     port: number;
     password?: string;
@@ -29,14 +28,10 @@ interface Config {
   };
   email: {
     provider: "mailhog" | "resend" | "disabled";
-    resendApiKey?: string;
     from: {
       name: string;
       email: string;
     };
-  };
-  upload: {
-    maxFileSize: number;
   };
   rateLimit: {
     windowMs: number;
@@ -47,11 +42,13 @@ interface Config {
   };
   minio: {
     bucketName: string;
+    minio_uri: string;
+    minio_public_url: string;
     endpoint: string;
     port: number;
     useSSL: boolean;
-    accessKey: string;
-    secretKey: string;
+    accessKey?: string;
+    secretKey?: string;
     publicUrl: string;
   };
 }
@@ -64,42 +61,90 @@ function parseEmailProvider(value?: string): Config["email"]["provider"] {
   return process.env.NODE_ENV === "development" ? "mailhog" : "disabled";
 }
 
+function parseRedisConfig(): Config["redis"] {
+  const redisUri = process.env.REDIS_URI;
+  if (redisUri) {
+    const url = new URL(redisUri);
+    return {
+      redisUri,
+      host: url.hostname,
+      port: url.port ? parseInt(url.port, 10) : 6379,
+      password: url.password || undefined,
+    };
+  }
+
+  return {
+    redisUri,
+    host: process.env.REDIS_HOST!,
+    port: parseInt(process.env.REDIS_PORT || "6379", 10),
+    password: process.env.REDIS_PASSWORD,
+  };
+}
+
+function parseMinioConfig(): Config["minio"] {
+  const minioUri = process.env.MINIO_URI;
+  const minioPublicUrl = process.env.MINIO_PUBLIC_URL || "";
+
+  if (minioUri) {
+    const url = new URL(minioUri);
+    const useSSL = url.protocol === "https:";
+    const port = url.port
+      ? parseInt(url.port, 10)
+      : useSSL
+        ? 443
+        : 80;
+
+    return {
+      bucketName: process.env.MINIO_BUCKET_NAME!,
+      minio_uri: minioUri,
+      minio_public_url: minioPublicUrl,
+      endpoint: url.hostname,
+      port,
+      useSSL,
+      accessKey: url.username || process.env.MINIO_ACCESS_KEY,
+      secretKey: url.password || process.env.MINIO_SECRET_KEY,
+      publicUrl: minioPublicUrl,
+    };
+  }
+
+  return {
+    bucketName: process.env.MINIO_BUCKET_NAME!,
+    minio_uri: minioUri || "",
+    minio_public_url: minioPublicUrl,
+    endpoint: process.env.MINIO_ENDPOINT!,
+    port: parseInt(process.env.MINIO_PORT || "9000", 10),
+    useSSL: process.env.MINIO_USE_SSL === "true",
+    accessKey: process.env.MINIO_ACCESS_KEY,
+    secretKey: process.env.MINIO_SECRET_KEY,
+    publicUrl: minioPublicUrl,
+  };
+}
+
 const config: Config = {
   app: {
-    port: parseInt(process.env.PORT || "3001", 10),
+    port: 3002,
     env: process.env.NODE_ENV || "development",
-    apiUrl: process.env.API_URL || "http://localhost:3001",
-    clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
+    clientUrl: process.env.CLIENT_URL!,
     mode: (process.env.INTERAONE_MODE || "self-host") === "cloud" ? "cloud" : "self-host",
     eeEnabled: (process.env.INTERAONE_EE_ENABLED || "false") === "true",
     licenseKey: process.env.INTERAONE_LICENSE_KEY,
   },
   database: {
-    mongoUri:
-      process.env.MONGODB_URI || "mongodb://localhost:27017/voxora-chat",
-    dbName: process.env.DB_NAME || "voxora-chat",
+    mongoUri: process.env.MONGODB_URI!,
   },
-  redis: {
-    host: process.env.REDIS_HOST || "localhost",
-    port: parseInt(process.env.REDIS_PORT || "6379", 10),
-    password: process.env.REDIS_PASSWORD,
-  },
+  redis: parseRedisConfig(),
   jwt: {
-    secret: process.env.JWT_SECRET || "fallback-secret-key",
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-    refreshSecret: process.env.JWT_REFRESH_SECRET || "fallback-refresh-secret",
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "30d",
+    secret: process.env.JWT_SECRET!,
+    expiresIn: process.env.JWT_EXPIRES_IN!,
+    refreshSecret: process.env.JWT_REFRESH_SECRET!,
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN!,
   },
   email: {
     provider: parseEmailProvider(process.env.EMAIL_PROVIDER),
-    resendApiKey: process.env.RESEND_API_KEY,
     from: {
-      name: process.env.EMAIL_FROM_NAME || "Voxora Support",
-      email: process.env.EMAIL_FROM_EMAIL || "noreply@voxora.cloud",
+      name: process.env.EMAIL_FROM_NAME!,
+      email: process.env.EMAIL_FROM_EMAIL!,
     },
-  },
-  upload: {
-    maxFileSize: parseInt(process.env.MAX_FILE_SIZE || "10485760", 10),
   },
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000", 10),
@@ -108,30 +153,7 @@ const config: Config = {
   cors: {
     allowedOrigins: ["*"],
   },
-  minio: {
-    bucketName: process.env.VOXORA_BUCKET_NAME || "voxora-chat-dev",
-    endpoint: process.env.MINIO_ENDPOINT || "localhost",
-    port: parseInt(process.env.MINIO_PORT || "9001", 10),
-    useSSL: process.env.MINIO_USE_SSL === "true",
-    accessKey: process.env.MINIO_ACCESS_KEY || "minioadmin",
-    secretKey: process.env.MINIO_SECRET_KEY || "minioadmin",
-    // Public URL for presigned links returned to browsers.
-    // Explicitly set MINIO_PUBLIC_URL=http://<server-ip>:9001 in production.
-    // Falls back to deriving from MINIO_ENDPOINT so dev (localhost) works without extra config.
-    get publicUrl(): string {
-      if (process.env.MINIO_PUBLIC_URL) return process.env.MINIO_PUBLIC_URL.replace(/\/$/, "");
-      const protocol = process.env.MINIO_USE_SSL === "true" ? "https" : "http";
-      const endpoint = process.env.MINIO_ENDPOINT || "localhost";
-      const port = process.env.MINIO_PORT || "9001";
-      if (process.env.NODE_ENV === "production") {
-        console.warn(
-          "[WARN] MINIO_PUBLIC_URL is not set. Presigned URLs will use internal hostname '"
-          + endpoint + "' which browsers cannot resolve. Set MINIO_PUBLIC_URL=http://<server-ip>:" + port
-        );
-      }
-      return `${protocol}://${endpoint}:${port}`;
-    },
-  },
+  minio: parseMinioConfig(),
 };
 
 export { config };

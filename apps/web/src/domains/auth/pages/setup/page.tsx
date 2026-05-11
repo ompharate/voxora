@@ -2,16 +2,8 @@ import { CheckCircle2 } from "lucide-react";
 import { SignupForm } from "../../components/signup-form";
 import Logo from "@/shared/components/logo";
 import { Card } from "@/shared/ui/card";
-import { useAuthStore } from "../../store/auth.store";
-import { Navigate } from "react-router";
 
 export default function SetupPage() {
-  const isAdminRegistered = useAuthStore((state) => state.isAdminRegistered);
-
-  if (isAdminRegistered) {
-    return <Navigate to="/auth/login" replace />;
-  }
-
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 sm:p-8">
       <Card className="flex flex-col md:flex-row w-full max-w-[900px] shadow-xl overflow-hidden border-border/50">
@@ -22,11 +14,9 @@ export default function SetupPage() {
         <div className="hidden md:flex w-full md:w-1/2 bg-muted/30 flex-col justify-center p-12 border-l border-border/50">
           <div className="max-w-md mx-auto">
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-                <Logo size={40} />
-              </div>
+              <Logo size={52} />
               <h2 className="text-3xl font-bold tracking-tight text-foreground">
-                Voxora
+                InteraOne
               </h2>
             </div>
             
@@ -52,7 +42,7 @@ export default function SetupPage() {
       </Card>
       
       <div className="mt-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Voxora. All rights reserved.
+        © {new Date().getFullYear()} InteraOne. All rights reserved.
       </div>
     </div>
   );

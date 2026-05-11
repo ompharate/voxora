@@ -69,25 +69,24 @@ export class AuthService {
     // Auto-create default widget for the first organization
     await Widget.create({
       organizationId: organization._id,
-      displayName: "Voxora Ai",
-      backgroundColor: "#10b981",
+      displayName: "InteraOne AI",
+      logoUrl: "",
+      backgroundColor: "#845C6C",
       appearance: {
-        primaryColor: "#10b981",
-        textColor: "#ffffff",
-        position: "bottom-right",
-        launcherText: "Chat with us",
+        theme: "dark",
+        primaryColor: "#845C6C",
         welcomeMessage: "Hi there! How can we help you today?",
         logoUrl: "",
       },
       behavior: { autoOpen: false, showOnMobile: true, showOnDesktop: true },
-      ai: { enabled: true, model: "gpt-4o-mini", fallbackToAgent: true, autoAssign: true, assignmentStrategy: "least-loaded" },
+      ai: { enabled: true,  fallbackToAgent: true },
       conversation: { collectUserInfo: { name: true, email: true, phone: false } },
-      features: { acceptMediaFiles: true, endUserDomAccess: false },
+      features: { endUserDomAccess: false },
       suggestions: [
-        { text: "What can you help me with?", showOutside: true },
-        { text: "I need help with my order", showOutside: false },
-        { text: "Talk to a human agent", showOutside: true },
-        { text: "What are your business hours?", showOutside: false },
+        { text: "How can you help me today?", showOutside: true },
+        { text: "I have a question about my account", showOutside: true },
+        { text: "Can you help me troubleshoot an issue?", showOutside: false },
+        { text: "I'd like to speak with support", showOutside: false },
       ],
       publicKey: crypto.randomBytes(16).toString("hex"),
     });
@@ -101,7 +100,7 @@ export class AuthService {
     await this._storeRefreshToken(user._id.toString(), organization._id.toString(), tokens.refreshToken);
 
     // Send welcome email to the new owner
-    await enqueueWelcomeEmail(user.email, user.name, "owner", organization._id.toString());
+    await enqueueWelcomeEmail(user.email, user.name, "owner");
 
     return {
       success: true,
@@ -227,18 +226,10 @@ export class AuthService {
       user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
 
-      const activeMembership = await Membership.findOne({
-        userId: user._id,
-        inviteStatus: "active",
-      })
-        .select("organizationId")
-        .lean();
-
       await enqueuePasswordResetEmail(
-        email,
+        user.email,
         user.name,
         resetToken,
-        activeMembership?.organizationId?.toString(),
       );
     }
 

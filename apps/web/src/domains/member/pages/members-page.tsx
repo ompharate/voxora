@@ -15,7 +15,7 @@ import {
   useResendMemberInvite,
   useRemoveMember,
 } from "../hooks";
-import { useTeams } from "@/domains/teams/hooks";
+
 import { useAuth } from "@/domains/auth/hooks";
 import type { Member, MemberFormData } from "../types/types";
 
@@ -32,14 +32,13 @@ export function MembersPage() {
 
   // React Query hooks
   const { data: members = [], isLoading: membersLoading } = useMembers();
-  const { data: teams = [], isLoading: teamsLoading } = useTeams();
   const inviteMemberMutation = useInviteMember();
   const updateMemberRoleMutation = useUpdateMemberRole();
   const updateMemberStatusMutation = useUpdateMemberStatus();
   const resendMemberInviteMutation = useResendMemberInvite();
   const removeMemberMutation = useRemoveMember();
 
-  const isLoading = membersLoading || teamsLoading;
+  const isLoading = membersLoading;
 
   // Check for invite query param
   useEffect(() => {
@@ -59,7 +58,6 @@ export function MembersPage() {
         name: data.name,
         email: data.email,
         role: data.role,
-        teamIds: data.teamIds,
       });
       setShowInviteModal(false);
     } catch (error: unknown) {
@@ -215,7 +213,6 @@ export function MembersPage() {
             </div>
           )}
           <MemberForm
-            teams={teams}
             onSubmit={handleInviteMember}
             onCancel={() => {
               setShowInviteModal(false);
@@ -234,7 +231,6 @@ export function MembersPage() {
           </div>
           <MemberForm
             member={selectedMember}
-            teams={teams}
             onSubmit={handleUpdateMemberRole}
             onCancel={() => setShowEditModal(false)}
             isLoading={updateMemberRoleMutation.isPending}

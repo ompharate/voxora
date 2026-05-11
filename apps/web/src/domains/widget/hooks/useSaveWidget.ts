@@ -13,7 +13,7 @@ export const useSaveWidget = () => {
   return useMutation({
     mutationKey: ["save-widget"],
     mutationFn: ({ data, isExisting }: SaveWidgetPayload) =>
-      isExisting ? widgetApi.updateWidget(data) : widgetApi.createWidget(data),
+      isExisting ? widgetApi.updateWidget(data) : widgetApi.createWidget(data as any),
     onSuccess: (response) => {
       queryClient.setQueryData<Widget>(["widget"], response.data);
     },

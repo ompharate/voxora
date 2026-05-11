@@ -15,47 +15,6 @@ const getParam = (param: string | string[] | undefined): string =>
 const getOrgId = (req: Request): string =>
   (req as AuthenticatedRequest).user.activeOrganizationId;
 
-// ─── TEAM MANAGEMENT ────────────────────────────────────────────────────────────
-
-export const getTeams = asyncHandler(async (req: Request, res: Response) => {
-  const { page = 1, limit = 10, search } = req.query;
-  const result = await adminService.getTeams(getOrgId(req), {
-    page: Number(page),
-    limit: Number(limit),
-    search: search as string,
-  });
-  sendResponse(res, 200, true, "Teams retrieved successfully", result);
-});
-
-export const getTeamById = asyncHandler(async (req: Request, res: Response) => {
-  const id = getParam(req.params.id);
-  const team = await adminService.getTeamById(getOrgId(req), id);
-  if (!team) return sendError(res, 404, "Team not found");
-  sendResponse(res, 200, true, "Team retrieved successfully", team);
-});
-
-export const createTeam = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const team = await adminService.createTeam(req.user.activeOrganizationId, {
-    ...req.body,
-    createdBy: req.user.userId,
-  });
-  sendResponse(res, 201, true, "Team created successfully", team);
-});
-
-export const updateTeam = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const id = getParam(req.params.id);
-  const team = await adminService.updateTeam(req.user.activeOrganizationId, id, req.body);
-  if (!team) return sendError(res, 404, "Team not found");
-  sendResponse(res, 200, true, "Team updated successfully", team);
-});
-
-export const deleteTeam = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const id = getParam(req.params.id);
-  const result = await adminService.deleteTeam(req.user.activeOrganizationId, id);
-  if (!result.success) return sendError(res, (result as any).statusCode || 400, (result as any).message || "Delete failed");
-  sendResponse(res, 200, true, "Team deleted successfully");
-});
-
 // ─── AGENT MANAGEMENT ───────────────────────────────────────────────────────────
 
 export const getAgents = asyncHandler(async (req: Request, res: Response) => {
@@ -77,11 +36,11 @@ export const getAgentById = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const inviteAgent = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const { email, name, role, teamIds, password } = req.body;
+  const { email, name, role, password } = req.body;
   const result = await MembershipService.inviteMember(
     req.user.userId,
     req.user.activeOrganizationId,
-    { email, name, role: role as MembershipRole, teamIds, password },
+    { email, name, role: role as MembershipRole, password },
   );
   sendResponse(res, 201, true, "Agent invited successfully", { membershipId: result.membership._id });
 });

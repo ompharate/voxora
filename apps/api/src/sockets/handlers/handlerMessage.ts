@@ -2,6 +2,10 @@ import { Message, Conversation, Widget } from "@shared/models";
 import logger from "@shared/utils/logger";
 import { aiQueue } from "@shared/config/queue";
 import { getSocketManager } from "@sockets/index";
+import { ConversationService } from "@modules/conversation/conversation.service";
+import { tracker } from "@shared/utils/tracker";
+
+const conversationService = new ConversationService();
 
 export const handleMessage = ({ socket, io }: { socket: any; io: any }) => {
   socket.on(
@@ -20,7 +24,9 @@ export const handleMessage = ({ socket, io }: { socket: any; io: any }) => {
 
       try {
         // Fetch conversation to get visitor info and widget config
-        const conversation = await Conversation.findById(conversationId);
+        const conversation = await Conversation.findById(conversationId)
+          .select("organizationId visitor metadata assignedTo status subject")
+          .lean();
 
         if (!conversation) {
           logger.error(`Conversation ${conversationId} not found`);
@@ -50,9 +56,10 @@ export const handleMessage = ({ socket, io }: { socket: any; io: any }) => {
         await message.save();
 
         // Update conversation's last activity
-        await Conversation.findByIdAndUpdate(conversationId, {
-          $set: { updatedAt: new Date() },
-        });
+        await Conversation.updateOne(
+          { _id: conversationId },
+          { $currentDate: { updatedAt: true } },
+        );
 
         // Emit message to other members of the conversation (avoid echo to sender)
         socket.to(`conversation:${conversationId}`).emit("new_message", {
@@ -68,7 +75,10 @@ export const handleMessage = ({ socket, io }: { socket: any; io: any }) => {
         });
 
         // Only process widget messages through the AI/routing pipeline
-        if (messageMetadata.source !== "widget") return;
+        if (messageMetadata.source !== "widget") {
+          tracker.trackMessage(conversation.organizationId.toString(), "agent");
+          return;
+        }
 
         // Once escalated to a human OR already resolved, stop feeding into AI pipeline.
         if (
@@ -80,14 +90,13 @@ export const handleMessage = ({ socket, io }: { socket: any; io: any }) => {
           return; // message was saved & broadcast above; just don't run AI
         }
 
-        // ── Resolve widget config ────────────────────────────────────────────────
+        // â”€â”€ Resolve widget config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const widgetKey: string | undefined = (conversation.metadata as any)?.widgetKey ?? undefined;
 
         let companyName: string | undefined;
         let aiEnabled = true;
         let fallbackToAgent = true;
         let collectUserInfo: { name?: boolean; email?: boolean; phone?: boolean } = {};
-        let teamId: string | undefined = (conversation.metadata as any)?.teamId ?? undefined;
 
         if (widgetKey) {
           try {
@@ -102,7 +111,7 @@ export const handleMessage = ({ socket, io }: { socket: any; io: any }) => {
               collectUserInfo = (widget as any).conversation?.collectUserInfo || {};
             }
           } catch {
-            // Non-fatal — fall back to defaults
+            // Non-fatal â€” fall back to defaults
             logger.warn(`[handleMessage] Could not fetch widget config for key ${widgetKey}`);
           }
         }
@@ -110,43 +119,46 @@ export const handleMessage = ({ socket, io }: { socket: any; io: any }) => {
         // Keep conversation unassigned when AI is disabled.
         // Human routing should happen only through escalation/manual pickup.
         if (!aiEnabled) {
-          logger.info(`[handleMessage] AI disabled for widget ${widgetKey} � leaving ${conversationId} unassigned`);
+          logger.info(`[handleMessage] AI disabled for widget ${widgetKey} — attempting auto-escalation`);
 
-          await Conversation.findByIdAndUpdate(conversationId, {
-            $set: {
-              status: "pending",
-              "metadata.pendingEscalation": true,
-              "metadata.routeReason": "AI disabled � awaiting human escalation",
-            },
-          });
+          const { agentId } = await conversationService.autoAssignConversation(conversation.organizationId.toString());
 
-          const sm = getSocketManager();
-          if (sm) {
-            const payload = {
-              conversationId,
-              subject: conversation.subject,
-              message: content,
-              timestamp: new Date(),
-              assignedTo: null,
-              teamId: teamId || null,
-              routeReason: "AI disabled � awaiting human escalation",
-            };
+          if (agentId) {
+            await Conversation.findByIdAndUpdate(conversationId, {
+              $set: {
+                status: "open",
+                assignedTo: agentId,
+                "metadata.escalatedAt": new Date(),
+                "metadata.routeReason": "AI disabled — auto-assigned to available agent",
+              },
+              $addToSet: { participants: agentId },
+            });
 
-            try {
-              if (typeof sm.emitToAllUsers === "function") {
-                sm.emitToAllUsers("new_widget_conversation", payload);
-              } else if (sm.ioInstance) {
-                sm.ioInstance.emit("new_widget_conversation", payload);
-              }
-            } catch (emitErr: any) {
-              logger.error(`[handleMessage] Failed to emit new_widget_conversation: ${emitErr?.message}`);
+            const sm = getSocketManager();
+            if (sm) {
+              sm.emitToUser(agentId, "new_widget_conversation", {
+                conversationId,
+                subject: conversation.subject,
+                message: content,
+                timestamp: new Date(),
+                routeReason: "AI disabled — auto-assigned to you",
+              });
             }
+          } else {
+            // No one online - mark as pending escalation so it's hidden until someone picks it up
+            await Conversation.findByIdAndUpdate(conversationId, {
+              $set: {
+                status: "pending",
+                "metadata.pendingEscalation": true,
+                "metadata.routeReason": "AI disabled — awaiting human (no one online)",
+              },
+            });
           }
 
           return; // Do not enqueue AI job
         }
 
-        // ── Route: AI enabled → enqueue AI job with full config ─────────────────
+        // â”€â”€ Route: AI enabled â†’ enqueue AI job with full config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         aiQueue
           .add("process", {
             organizationId: conversation.organizationId!.toString(),
@@ -154,7 +166,6 @@ export const handleMessage = ({ socket, io }: { socket: any; io: any }) => {
             content,
             messageId: message._id.toString(),
             companyName,
-            teamId,
             fallbackToAgent,
             collectUserInfo,
           })
@@ -174,9 +185,9 @@ export const handleMessage = ({ socket, io }: { socket: any; io: any }) => {
       socket.join(roomName);
 
       if (
-        socket.data?.user?.role === "agent" ||
-        socket.data?.user?.role === "admin" ||
-        socket.data?.user?.role === "owner"
+        socket.data?.user?.orgRole === "agent" ||
+        socket.data?.user?.orgRole === "admin" ||
+        socket.data?.user?.orgRole === "owner"
       ) {
         await Conversation.findByIdAndUpdate(conversationId, {
           $set: {
@@ -222,9 +233,9 @@ export const handleMessage = ({ socket, io }: { socket: any; io: any }) => {
     const roomName = `conversation:${conversationId}`;
 
     if (
-      socket.data?.user?.role === "agent" ||
-      socket.data?.user?.role === "admin" ||
-      socket.data?.user?.role === "owner"
+      socket.data?.user?.orgRole === "agent" ||
+      socket.data?.user?.orgRole === "admin" ||
+      socket.data?.user?.orgRole === "owner"
     ) {
       socket.to(roomName).emit("agent_typing", {
         conversationId,
@@ -240,9 +251,9 @@ export const handleMessage = ({ socket, io }: { socket: any; io: any }) => {
     const roomName = `conversation:${conversationId}`;
 
     if (
-      socket.data?.user?.role === "agent" ||
-      socket.data?.user?.role === "admin" ||
-      socket.data?.user?.role === "owner"
+      socket.data?.user?.orgRole === "agent" ||
+      socket.data?.user?.orgRole === "admin" ||
+      socket.data?.user?.orgRole === "owner"
     ) {
       socket.to(roomName).emit("agent_stopped_typing", { conversationId });
     } else {

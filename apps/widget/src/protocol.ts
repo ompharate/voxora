@@ -1,8 +1,8 @@
 /**
- * Voxora Widget postMessage Protocol v1
+ * InteraOne Widget postMessage Protocol v1
  *
  * All cross-origin communication between the loader script (customer domain)
- * and the widget iframe (Voxora domain) goes through this typed protocol.
+ * and the widget iframe (InteraOne domain) goes through this typed protocol.
  *
  * Security guarantees:
  *   - Every message carries a `version` field; unknown versions are silently dropped.
@@ -15,7 +15,7 @@
  *   2. Parent        →  sends INIT_WIDGET with visitor context
  *   3. Iframe bootstraps session internally, connects WebSocket
  *   4. Ongoing:  parent sends USER_IDENTITY / PAGE_CHANGE / CUSTOM_EVENT
- *                iframe sends CLOSE_WIDGET / OPEN_WIDGET / UNREAD_COUNT
+ *                iframe sends CLOSE_WIDGET / OPEN_WIDGET
  */
 
 export const PROTOCOL_VERSION = '1' as const;
@@ -23,7 +23,7 @@ export const PROTOCOL_VERSION = '1' as const;
 // ─── Shared payload types ─────────────────────────────────────────────────────
 
 /**
- * An explicit user identity set by the host page via `Voxora.identify()`.
+ * An explicit user identity set by the host page via `InteraOne.identify()`.
  * All fields are optional; the widget will work in anonymous mode without them.
  */
 export interface UserIdentity {
@@ -35,7 +35,7 @@ export interface UserIdentity {
 }
 
 /**
- * Visual appearance settings fetched from the Voxora API and forwarded to the iframe.
+ * Visual appearance settings fetched from the InteraOne API and forwarded to the iframe.
  * The iframe uses these to style itself consistently with the customer's brand.
  */
 export interface WidgetAppearance {
@@ -71,7 +71,6 @@ export interface WidgetAppearance {
     };
   };
   features?: {
-    acceptMediaFiles?: boolean;
     endUserDomAccess?: boolean;
   };
 }
@@ -83,9 +82,9 @@ export interface WidgetAppearance {
  *
  * Contains everything the iframe needs to bootstrap a session:
  *   - publicKey: identifies the widget configuration on the backend
- *   - apiUrl: Voxora API base URL
+ *   - apiUrl: InteraOne API base URL
  *   - visitorId: stable anonymous ID, read from parent localStorage by the loader
- *   - identity: optional explicit user identity (set via Voxora.identify())
+ *   - identity: optional explicit user identity (set via InteraOne.identify())
  *   - pageUrl / pageTitle: initial page context
  *   - appearance: branding config fetched by the loader from the public API
  */
@@ -104,7 +103,7 @@ export interface InitWidgetMessage {
 }
 
 /**
- * USER_IDENTITY — sent when the host page calls `Voxora.identify()` after init.
+ * USER_IDENTITY — sent when the host page calls `InteraOne.identify()` after init.
  * The iframe merges this into the current session and notifies the backend.
  */
 export interface UserIdentityMessage {
@@ -128,7 +127,7 @@ export interface PageChangeMessage {
 
 /**
  * CUSTOM_EVENT — host page can emit named events that trigger automations.
- * e.g. Voxora.track('checkout_completed', { value: 99 })
+ * e.g. InteraOne.track('checkout_completed', { value: 99 })
  */
 export interface CustomEventMessage {
   type: 'CUSTOM_EVENT';
@@ -136,6 +135,17 @@ export interface CustomEventMessage {
   payload: {
     name: string;
     properties?: Record<string, string | number | boolean>;
+  };
+}
+
+/**
+ * SHOW_SKELETON — instructs the iframe to show the intentional open skeleton.
+ */
+export interface ShowSkeletonMessage {
+  type: 'SHOW_SKELETON';
+  version: typeof PROTOCOL_VERSION;
+  payload?: {
+    durationMs?: number;
   };
 }
 
@@ -156,6 +166,7 @@ export type ParentToIframeMessage =
   | UserIdentityMessage
   | PageChangeMessage
   | CustomEventMessage
+  | ShowSkeletonMessage
   | PageHtmlResponseMessage;
 
 // ─── Iframe → Parent messages ─────────────────────────────────────────────────
@@ -188,18 +199,6 @@ export interface OpenWidgetMessage {
 }
 
 /**
- * UNREAD_COUNT — iframe reports the current count of unread messages.
- * The loader renders this on the floating button badge.
- */
-export interface UnreadCountMessage {
-  type: 'UNREAD_COUNT';
-  version: typeof PROTOCOL_VERSION;
-  payload: {
-    count: number;
-  };
-}
-
-/**
  * RESIZE_WIDGET — iframe requests a specific iframe container size.
  * Useful for welcome-screen vs full-chat sizing.
  */
@@ -227,7 +226,6 @@ export type IframeToParentMessage =
   | WidgetReadyMessage
   | CloseWidgetMessage
   | OpenWidgetMessage
-  | UnreadCountMessage
   | ResizeWidgetMessage
   | RequestPageHtmlMessage;
 

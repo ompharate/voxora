@@ -15,11 +15,9 @@ import { Alert } from "@/shared/ui/alert";
 import { validateEmail, validateLoginForm } from "@/shared/lib/validation";
 import type { LoginPayload } from "../types/types";
 import Logo from "@/shared/components/logo";
-import { useAuthStore } from "../store/auth.store";
 
 export function LoginForm() {
   const { mutate: login, isPending, isError, error } = useLogin();
-  const isAdminRegistered = useAuthStore((state) => state.isAdminRegistered);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<LoginPayload>({
     email: "",
@@ -95,9 +93,7 @@ export function LoginForm() {
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
         <div className="flex items-center justify-center mb-4">
-          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-            <Logo size={48} />
-          </div>
+          <Logo size={64} animate={false} />
         </div>
         <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
         <CardDescription className="text-center">
@@ -187,14 +183,12 @@ export function LoginForm() {
             {isPending ? "Signing in..." : "Sign in"}
           </Button>
 
-          {!isAdminRegistered && (
-            <div className="text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link to="/auth/setup" className="text-primary hover:underline">
-                Sign up
-              </Link>
-            </div>
-          )}
+          <div className="text-center text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link to="/auth/signup" className="text-primary hover:underline">
+              Sign up
+            </Link>
+          </div>
         </form>
       </CardContent>
     </Card>

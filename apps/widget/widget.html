@@ -1,100 +1,154 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Voxora AI</title>
-    <link rel="stylesheet" href="/src/iframe/styles/main.css" />
-  </head>
-  <body class="dark-theme">
-    <div id="app" class="widget-app">
 
-      <div class="widget-topbar">
-        <div class="widget-topbar-title">Support Chat</div>
-        <div class="topbar-actions">
-          <button id="historyBtn" class="topbar-action-btn" title="Conversation History">
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </button>
-          <button id="vx-maximize" class="topbar-action-btn" title="Maximize">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 3 21 3 21 9"></polyline>
-              <polyline points="9 21 3 21 3 15"></polyline>
-              <line x1="21" y1="3" x2="14" y2="10"></line>
-              <line x1="3" y1="21" x2="10" y2="14"></line>
-            </svg>
-          </button>
-          <button id="vx-minimize" class="topbar-action-btn" title="Minimize">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
-        </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InteraOne AI</title>
+  <link rel="stylesheet" href="/src/iframe/styles/main.css" />
+</head>
+
+<body>
+  <div id="app" class="widget-app">
+
+    <div class="widget-topbar">
+      <div class="topbar-actions">
+        <button id="historyBtn" class="topbar-action-btn" title="Conversation History">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </button>
+        <button id="newChatBtn" class="topbar-action-btn" title="New chat">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h9"></path>
+            <line x1="17" y1="7" x2="17" y2="13"></line>
+            <line x1="14" y1="10" x2="20" y2="10"></line>
+          </svg>
+        </button>
+        <button id="vx-minimize" class="topbar-action-btn" title="Close">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
-
-      <!-- History Overlay -->
-      <div id="historyOverlay" class="history-overlay">
-        <!-- Header -->
-        <div class="history-header">
-          <div class="history-header-left">
-            <button id="closeHistoryBtn" class="history-back-btn" title="Back to chat">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <div>
-              <h3>Past Conversations</h3>
-              <p>Pick up where you left off</p>
-            </div>
-          </div>
-          <button id="newConversationBtn" class="new-conversation-btn" title="Start new conversation">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            New chat
-          </button>
-        </div>
-
-        <!-- Search -->
-        <div class="history-search-wrapper">
-          <svg class="history-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input id="historySearch" class="history-search" type="text" placeholder="Search conversations…" autocomplete="off" />
-        </div>
-
-        <!-- List -->
-        <div id="historyList" class="history-list"></div>
-      </div>
-      <!-- Messages Area (Hidden initially or if no messages) -->
-      <div id="messagesContainer" class="messages-container" style="display: none;"></div>
-
-      <!-- Welcome & Suggestions (Shown initially) -->
-      <div id="welcomeScreen" class="welcome-container">
-        <div class="assistant-header">
-          <div id="vx-avatar" class="avatar"></div>
-          <h2 id="vx-title">How can I help you today?</h2>
-        </div>
-
-        <div id="suggestions" class="suggestions-grid"></div>
-      </div>
-
-      <!-- Input Area -->
-      <div class="input-area">
-        <div class="chat-input-box" id="chatInputBox">
-          <textarea id="messageInput" placeholder="Ask anything..." rows="1"></textarea>
-          <div class="input-footer">
-            <button id="attachBtn" class="hidden-btn" style="display:none;"></button>
-            <input type="file" id="fileInput" style="display:none;" />
-            <span class="input-hint" id="inputHint">⏎ to send</span>
-            <button id="sendBtn" disabled>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 19V5M5 12l7-7 7 7"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Kept for JS errors -->
-      <div id="typingIndicator" style="display: none;"></div>
     </div>
-    <script type="module" src="/src/iframe/main.ts"></script>
-  </body>
+
+    <div id="uiSkeleton" class="ui-skeleton" aria-hidden="true">
+      <div class="ui-skeleton-header">
+        <div class="ui-skeleton-avatar"></div>
+        <div class="ui-skeleton-lines">
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+      <div class="ui-skeleton-messages">
+        <div class="ui-skeleton-bubble"></div>
+        <div class="ui-skeleton-bubble is-short is-right"></div>
+        <div class="ui-skeleton-bubble is-medium"></div>
+      </div>
+      <div class="ui-skeleton-input">
+        <div class="ui-skeleton-input-line"></div>
+        <div class="ui-skeleton-input-actions">
+          <div class="ui-skeleton-chip"></div>
+          <div class="ui-skeleton-send"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Overlay -->
+    <div id="historyOverlay" class="history-overlay">
+      <!-- Header -->
+      <div class="history-header">
+        <div class="history-header-left">
+          <button id="closeHistoryBtn" class="history-back-btn" title="Back to chat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <div>
+            <h3>Past Conversations</h3>
+            <p>Pick up where you left off</p>
+          </div>
+        </div>
+        <button id="newConversationBtn" class="new-conversation-btn" title="Start new conversation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          New chat
+        </button>
+      </div>
+
+      <!-- Search -->
+      <div class="history-search-wrapper">
+        <svg class="history-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input id="historySearch" class="history-search" type="text" placeholder="Search conversations…"
+          autocomplete="off" />
+      </div>
+
+      <!-- List -->
+      <div id="historyList" class="history-list"></div>
+    </div>
+    <!-- Messages Area (Hidden initially or if no messages) -->
+    <div id="messagesContainer" class="messages-container" style="display: none;"></div>
+
+    <!-- Welcome & Suggestions (Shown initially) -->
+    <div id="welcomeScreen" class="welcome-container">
+      <div class="assistant-hero">
+        <div class="assistant-brand">
+          <div id="vx-avatar" class="assistant-avatar"></div>
+        </div>
+        <h1 id="vx-greeting" class="assistant-greeting">Hello</h1>
+        <p id="vx-subtext" class="assistant-subtext">How can I help you today?</p>
+      </div>
+
+      <div id="suggestions" class="suggestions-grid"></div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="input-area">
+      <div class="chat-input-box" id="chatInputBox">
+        <textarea id="messageInput" placeholder="Type @ to ask about this page" rows="2"></textarea>
+        <div class="input-actions">
+          <button id="sendBtn" class="send-btn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="watermark">
+        <div class="watermark-sparkle" aria-hidden="true">
+          <svg class="watermark-sparkle-icon" viewBox="0 0 24 24" fill="none">
+            <path class="watermark-sparkle-main"
+              d="M12 2.8l1.78 5.42L19.2 10l-5.42 1.78L12 17.2l-1.78-5.42L4.8 10l5.42-1.78L12 2.8Z" fill="currentColor">
+            </path>
+            <path class="watermark-sparkle-dot"
+              d="M18.4 14.3l.74 2.05 2.06.75-2.06.74-.74 2.06-.75-2.06-2.05-.74 2.05-.75.75-2.05Z" fill="currentColor">
+            </path>
+          </svg>
+        </div>
+        <span>Ask InteraOne</span>
+      </div>
+    </div>
+
+    <!-- Kept for JS errors -->
+    <div id="typingIndicator" style="display: none;"></div>
+  </div>
+  <script type="module" src="/src/iframe/main.ts"></script>
+</body>
+
 </html>

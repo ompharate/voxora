@@ -29,30 +29,6 @@ export const updateStatus = asyncHandler(async (req: AuthenticatedRequest, res: 
   sendResponse(res, 200, true, "Status updated successfully", result);
 });
 
-// ─── TEAM INFORMATION ────────────────────────────────────────────────────────────
-
-export const getTeams = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const teams = await agentService.getAgentTeams(req.user.userId, req.user.activeOrganizationId);
-  sendResponse(res, 200, true, "Teams retrieved successfully", teams);
-});
-
-export const getTeamMembers = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const id = getParam(req.params.id);
-  const members = await agentService.getTeamMembers(req.user.userId, req.user.activeOrganizationId, id);
-  if (!members) return sendError(res, 403, "Access denied - not a member of this team");
-  sendResponse(res, 200, true, "Team members retrieved successfully", members);
-});
-
-export const getAllTeams = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const teams = await agentService.getAllTeams(req.user.activeOrganizationId);
-  sendResponse(res, 200, true, "All teams retrieved successfully", teams);
-});
-
-export const getAllTeamMembers = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const id = getParam(req.params.id);
-  const members = await agentService.getAllTeamMembers(req.user.activeOrganizationId, id);
-  sendResponse(res, 200, true, "Team members retrieved successfully", members);
-});
 
 // ─── STATS ───────────────────────────────────────────────────────────────────────
 

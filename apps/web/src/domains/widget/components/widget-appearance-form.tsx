@@ -8,7 +8,6 @@ interface WidgetAppearanceFormProps {
   formData: CreateWidgetData;
   validationErrors: {
     displayName?: string;
-    backgroundColor?: string;
   };
   onInputChange: (field: keyof CreateWidgetData, value: string) => void;
   onSubmit: (e: FormEvent) => void;
@@ -68,60 +67,6 @@ export function WidgetAppearanceForm({
             </p>
           </div>
 
-          <div className="space-y-3">
-            <Label
-              htmlFor="backgroundColor"
-              className="text-sm font-medium text-foreground/90"
-            >
-              Brand Color
-            </Label>
-
-            <div className="p-6 rounded-xl border border-border bg-muted/30 backdrop-blur-sm space-y-4">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-20 h-20 rounded-xl border-2 border-border shadow-lg transition-transform hover:scale-105"
-                  style={{ backgroundColor: formData.backgroundColor }}
-                />
-                <div className="flex-1 space-y-2">
-                  <div className="text-sm font-medium">Primary Color</div>
-                  <div className="text-xs text-muted-foreground">
-                    Used for buttons, links, and accents
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 items-center">
-                <Input
-                  id="backgroundColor"
-                  type="color"
-                  value={formData.backgroundColor}
-                  onChange={(e) =>
-                    onInputChange("backgroundColor", e.target.value)
-                  }
-                  className="w-14 h-14 rounded-lg cursor-pointer border-border p-1"
-                  required
-                />
-
-                <Input
-                  value={formData.backgroundColor}
-                  onChange={(e) =>
-                    onInputChange("backgroundColor", e.target.value)
-                  }
-                  placeholder="#10b981"
-                  className={`flex-1 h-14 rounded-xl font-mono uppercase border-border bg-background/80 backdrop-blur-sm cursor-text ${
-                    validationErrors.backgroundColor ? "border-red-500/50" : ""
-                  }`}
-                  pattern="^#[0-9A-Fa-f]{6}$"
-                />
-              </div>
-
-              {validationErrors.backgroundColor && (
-                <p className="text-xs text-red-500">
-                  {validationErrors.backgroundColor}
-                </p>
-              )}
-            </div>
-          </div>
 
           <div className="space-y-3">
             <Label

@@ -11,7 +11,7 @@ export class GeminiProvider implements LLMProvider {
       throw new Error("GEMINI_API_KEY is required for GeminiProvider");
     }
     this.ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    this.defaultModel = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    this.defaultModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
   }
 
   async generate(messages: LLMMessage[], options: LLMOptions = {}): Promise<string> {
@@ -20,10 +20,10 @@ export class GeminiProvider implements LLMProvider {
     let systemInstruction = messages.find((m) => m.role === "system")?.content;
     let turns = messages.filter((m) => m.role !== "system");
 
-    // Convert to Gemini format
+    
     const contents: any[] = turns.map((m) => {
         if (m.role === "tool") {
-            // Function response from a tool execution
+            
             return {
                 role: "user",
                 parts: [{
@@ -84,12 +84,12 @@ export class GeminiProvider implements LLMProvider {
         }];
     }
 
-    // Tools Loop
+    
     const MAX_TOOL_LOOPS = 5;
     let fullTextResponse = "";
 
     for (let loop = 0; loop < MAX_TOOL_LOOPS; loop++) {
-        fullTextResponse = ""; // Reset for this turn, we only return the final turn's text
+        fullTextResponse = ""; 
         let functionCalls: any[] = [];
         
         if (onStream) {
@@ -117,19 +117,19 @@ export class GeminiProvider implements LLMProvider {
             return fullTextResponse || "Sorry, I could not generate a response.";
         }
 
-        // Output function calls block to history to maintain conversational state
+        
         contents.push({
             role: "model",
             parts: functionCalls.map(fc => ({ functionCall: fc }))
         });
 
-        // Execute all tools
+        
         const functionResponses = [];
         for (const call of functionCalls) {
             const tool = tools.find(t => t.name === call.name);
             if (tool) {
                 if (onStream) {
-                    // Send thought stream to frontend
+                    
                     if (call.name === "rewrite_and_think" && call.args && call.args.thought_process) {
                         onStream(`*Thought Process:* ${call.args.thought_process}\n\n`, true);
                     } else if (call.name === "web_crawl") {

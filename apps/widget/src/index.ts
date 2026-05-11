@@ -1,11 +1,11 @@
 /**
- * Voxora Widget - Main Entry Point
+ * InteraOne Widget - Main Entry Point
  * Embeddable chat widget with iframe isolation and secure cross-origin communication
  * 
  * @example
  * ```html
- * <script src="https://widget.voxora.ai/v1/voxora.js" 
- *         data-voxora-public-key="your-key"
+ * <script src="https://widget.InteraOne.ai/v1/InteraOne.js" 
+ *         data-InteraOne-public-key="your-key"
  *         async>
  * </script>
  * ```
@@ -28,15 +28,16 @@ import {
   UserIdentityMessage,
   PageChangeMessage,
   CustomEventMessage,
+  ShowSkeletonMessage,
   IframeToParentMessage,
   isIframeMessage,
   WidgetAppearance,
   PageHtmlResponseMessage,
 } from './protocol';
 
-type QueuedMessage = InitWidgetMessage | UserIdentityMessage | PageChangeMessage | CustomEventMessage;
+type QueuedMessage = InitWidgetMessage | UserIdentityMessage | PageChangeMessage | CustomEventMessage | ShowSkeletonMessage;
 
-class VoxoraLoader {
+class InteraOneLoader {
   private api: WidgetAPI;
   private ui: WidgetUI;
   private state: WidgetState;
@@ -54,8 +55,8 @@ class VoxoraLoader {
   constructor() {
     const config = parseWidgetConfig();
     if (!config) {
-      console.error('[VoxoraWidget] Invalid config — widget not loaded.');
-      this.state = { isOpen: false, unreadCount: 0 };
+      console.error('[InteraOneWidget] Invalid config — widget not loaded.');
+      this.state = { isOpen: false };
       this.api = null as unknown as WidgetAPI;
       this.ui = null as unknown as WidgetUI;
       this.iframeOrigin = '';
@@ -65,16 +66,24 @@ class VoxoraLoader {
       return;
     }
 
-    this.state = { isOpen: false, unreadCount: 0 };
+    this.state = { isOpen: false };
     this.api = new WidgetAPI(config);
     this.ui = new WidgetUI(config, this.state);
+    this.ui.onToggleChange((isOpen) => {
+      if (!isOpen) return;
+      this.queueOrSend({
+        type: 'SHOW_SKELETON',
+        version: PROTOCOL_VERSION,
+        payload: { durationMs: 1000 },
+      } as ShowSkeletonMessage);
+    });
     this.iframeOrigin = getWidgetOrigin(config.apiUrl!, config.cdnUrl);
     this.fullscreenMode = config.fullscreen === true;
     this.lastPageUrl = "";
     this.visitorId = "";
     this.identity = null;
 
-    this.init().catch(err => console.error('[VoxoraWidget] Init error:', err));
+    this.init().catch(err => console.error('[InteraOneWidget] Init error:', err));
   }
 
   private async init(): Promise<void> {
@@ -142,10 +151,6 @@ class VoxoraLoader {
           this.ui.open();
           this.state.isOpen = true;
           break;
-        case 'UNREAD_COUNT':
-          this.state.unreadCount = msg.payload.count;
-          this.ui.setUnreadCount(msg.payload.count);
-          break;
         case 'RESIZE_WIDGET':
           this.ui.resizeFromIframe(
             msg.payload.width,
@@ -156,20 +161,21 @@ class VoxoraLoader {
         case 'REQUEST_PAGE_HTML': {
           // Only service the request when DOM access is permitted by config
           if (this.appearance?.features?.endUserDomAccess) {
-            const MAX_HTML_BYTES = 16_384; // 16 KB cap
-            let html = document.body?.outerHTML ?? '';
-            // Strip script and style content to keep payload lean and safe
-            html = html
-              .replace(/<script[\s\S]*?<\/script>/gi, '')
-              .replace(/<style[\s\S]*?<\/style>/gi, '')
-              .trim();
-            if (html.length > MAX_HTML_BYTES) {
-              html = html.slice(0, MAX_HTML_BYTES) + '<!-- [TRUNCATED] -->';
+            const MAX_TEXT_BYTES = 10_000;
+            // Target semantic content containers first to avoid noisy headers/footers
+            const contentEl = document.querySelector('main') || document.querySelector('article') || document.body;
+            let text = contentEl?.innerText ?? '';
+
+            // Clean up excessive whitespace and newlines
+            text = text.replace(/\n\s*\n/g, '\n\n').trim();
+
+            if (text.length > MAX_TEXT_BYTES) {
+              text = text.slice(0, MAX_TEXT_BYTES) + '\n\n[TRUNCATED]';
             }
             const reply: PageHtmlResponseMessage = {
               type: 'PAGE_HTML_RESPONSE',
               version: PROTOCOL_VERSION,
-              payload: { html },
+              payload: { html: text },
             };
             this.iframe?.contentWindow?.postMessage(reply, this.iframeOrigin);
           }
@@ -285,13 +291,13 @@ class VoxoraLoader {
   destroy(): void { this.ui.destroy(); widgetInstance = null; }
 }
 
-let widgetInstance: VoxoraLoader | null = null;
+let widgetInstance: InteraOneLoader | null = null;
 
 function boot(): void {
   if (widgetInstance) return;
-  widgetInstance = new VoxoraLoader();
+  widgetInstance = new InteraOneLoader();
 
-  (window as any).Voxora = {
+  (window as any).InteraOne = {
     open: () => widgetInstance?.open(),
     close: () => widgetInstance?.close(),
     toggle: () => widgetInstance?.toggle(),
@@ -299,7 +305,7 @@ function boot(): void {
     reset: () => widgetInstance?.reset(),
     track: (n: string, p?: object) => widgetInstance?.track(n, p as any),
     getState: () => widgetInstance?.getState(),
-    destroy: () => { widgetInstance?.destroy(); widgetInstance = null; delete (window as any).Voxora; },
+    destroy: () => { widgetInstance?.destroy(); widgetInstance = null; delete (window as any).InteraOne; },
   };
 }
 

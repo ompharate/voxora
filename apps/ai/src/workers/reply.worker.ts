@@ -1,17 +1,13 @@
-import { Worker, ConnectionOptions } from "bullmq";
+import { Worker } from "bullmq";
 import config from "../config";
-import { runPipeline } from "../modules/chat/pipelines/reply.pipeline";
+import { runPipeline } from "../modules/chat/pipelines/run-pipeline";
 import { AIJobData } from "../modules/chat/chat.types";
+import { getBullMQConnection } from "../infrastructure/queue/bullmq.client";
 
 const QUEUE_NAME = "ai-processing";
 
 export function startWorker() {
-  const connection: ConnectionOptions = {
-    host: config.redis.host,
-    port: config.redis.port,
-    password: config.redis.password,
-    maxRetriesPerRequest: null,
-  };
+  const connection = getBullMQConnection();
 
   const worker = new Worker<AIJobData, void, string>(
     QUEUE_NAME,

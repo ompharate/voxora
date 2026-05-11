@@ -1,4 +1,4 @@
-import { minioClient, VOXORA_BUCKET } from "@shared/config/minio";
+import { minioClient, INTERAONE_BUCKET } from "@shared/config/minio";
 import type { Readable } from "stream";
 import config from "@shared/config";
 
@@ -15,9 +15,9 @@ import config from "@shared/config";
  */
 export function getPublicUrl(objectKey: string): string {
   const base = config.minio.publicUrl.replace(/\/$/, "");
-  if (base) return `${base}/${VOXORA_BUCKET}/${objectKey}`;
+  if (base) return `${base}/${INTERAONE_BUCKET}/${objectKey}`;
   const protocol = config.minio.useSSL ? "https" : "http";
-  return `${protocol}://${config.minio.endpoint}:${config.minio.port}/${VOXORA_BUCKET}/${objectKey}`;
+  return `${protocol}://${config.minio.endpoint}:${config.minio.port}/${INTERAONE_BUCKET}/${objectKey}`;
 }
 
 // ── Presigned URLs ────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ export async function getPresignedUploadUrl(
   objectKey: string,
   expiresIn: number = 900,
 ): Promise<string> {
-  const url = await minioClient.presignedPutObject(VOXORA_BUCKET, objectKey, expiresIn);
+  const url = await minioClient.presignedPutObject(INTERAONE_BUCKET, objectKey, expiresIn);
   return _normalizeUrl(url);
 }
 
@@ -51,7 +51,7 @@ export async function getPresignedDownloadUrl(
   objectKey: string,
   expiresIn: number = 3600,
 ): Promise<string> {
-  const url = await minioClient.presignedGetObject(VOXORA_BUCKET, objectKey, expiresIn);
+  const url = await minioClient.presignedGetObject(INTERAONE_BUCKET, objectKey, expiresIn);
   return _normalizeUrl(url);
 }
 
@@ -65,7 +65,7 @@ export async function getPresignedDownloadUrl(
  * Pipe the returned stream straight to an HTTP response.
  */
 export async function downloadStream(objectKey: string): Promise<Readable> {
-  return minioClient.getObject(VOXORA_BUCKET, objectKey);
+  return minioClient.getObject(INTERAONE_BUCKET, objectKey);
 }
 
 /**
@@ -73,14 +73,14 @@ export async function downloadStream(objectKey: string): Promise<Readable> {
  * Throws if the object does not exist.
  */
 export async function statObject(objectKey: string) {
-  return minioClient.statObject(VOXORA_BUCKET, objectKey);
+  return minioClient.statObject(INTERAONE_BUCKET, objectKey);
 }
 
 /**
  * Permanently delete an object.
  */
 export async function removeObject(objectKey: string): Promise<void> {
-  await minioClient.removeObject(VOXORA_BUCKET, objectKey);
+  await minioClient.removeObject(INTERAONE_BUCKET, objectKey);
 }
 
 /**
@@ -89,7 +89,7 @@ export async function removeObject(objectKey: string): Promise<void> {
  */
 export async function objectExists(objectKey: string): Promise<boolean> {
   try {
-    await minioClient.statObject(VOXORA_BUCKET, objectKey);
+    await minioClient.statObject(INTERAONE_BUCKET, objectKey);
     return true;
   } catch {
     return false;
@@ -102,7 +102,7 @@ export async function objectExists(objectKey: string): Promise<boolean> {
 export function listObjects(prefix: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const keys: string[] = [];
-    const stream = minioClient.listObjects(VOXORA_BUCKET, prefix, true);
+    const stream = minioClient.listObjects(INTERAONE_BUCKET, prefix, true);
     stream.on("data", (obj) => { if (obj.name) keys.push(obj.name); });
     stream.on("error", reject);
     stream.on("end", () => resolve(keys));

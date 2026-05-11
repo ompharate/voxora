@@ -36,7 +36,7 @@ export async function bootstrapSession(initPayload: any, onReady: (token: string
 
   const stored = loadStoredSession(publicKey);
   if (stored) {
-    console.log('[VoxoraWidget] Resuming session from iframe localStorage');
+    console.log('[InteraOneWidget] Resuming session from iframe localStorage');
     state.currentSessionId = stored.sessionId;
     onReady(stored.token, stored.sessionId);
     return;
@@ -49,12 +49,12 @@ export async function bootstrapSession(initPayload: any, onReady: (token: string
       const old = JSON.parse(raw);
       if (old?.sessionId) preservedSessionId = old.sessionId;
     }
-  } catch {}
+  } catch { }
 
-  console.log('[VoxoraWidget] Bootstrapping new session...');
+  console.log('[InteraOneWidget] Bootstrapping new session...');
   try {
     const body: any = {
-      voxoraPublicKey: publicKey,
+      InteraOnePublicKey: publicKey,
       origin: initPayload.pageUrl ? new URL(initPayload.pageUrl).origin : undefined,
     };
     if (identity && identity.userId) {
@@ -90,7 +90,7 @@ export async function bootstrapSession(initPayload: any, onReady: (token: string
     state.currentSessionId = sessionId;
     onReady(token, sessionId);
   } catch (err) {
-    console.error('[VoxoraWidget] Session bootstrap failed:', err);
+    console.error('[InteraOneWidget] Session bootstrap failed:', err);
     clearStoredSession(publicKey);
     if (elements.messageInput && elements.sendBtn) {
       elements.messageInput.disabled = false;
@@ -122,60 +122,4 @@ export async function fetchMessagesFromBackend(conversationId: string) {
   }
 }
 
-export async function uploadAndSendFile(file: File) {
-  if (!state.widgetToken) return;
-  if (!state.chatId) {
-    alert('Please send your first message to start the conversation, then attach files.');
-    return;
-  }
-  const MAX = 10 * 1024 * 1024;
-  if (file.size > MAX) { alert('File too large (max 10 MB)'); return; }
 
-  const meta = { fileName: file.name, fileSize: file.size, mimeType: file.type, fileKey: null };
-  addMessage(JSON.stringify(meta), 'user', state.userName || 'You', 'file-uploading');
-
-  function removeLastPlaceholder() {
-    if (!elements.messagesContainer) return;
-    const ph = elements.messagesContainer.querySelectorAll('.upload-placeholder');
-    if (ph.length) ph[ph.length - 1].remove();
-  }
-
-  try {
-    const urlResp = await makeAuthenticatedRequest(
-      API_BASE_URL + '/api/v1/widget/upload-url',
-      { method: 'POST', body: JSON.stringify({ fileName: file.name, mimeType: file.type }) }
-    );
-    if (!urlResp.ok) throw new Error('Upload URL failed');
-    const { data } = await urlResp.json();
-
-    const putResp = await fetch(data.uploadUrl, {
-      method: 'PUT',
-      body: file,
-      headers: { 'Content-Type': file.type },
-    });
-    if (!putResp.ok) throw new Error('Storage upload failed');
-
-    removeLastPlaceholder();
-    const fileContent = JSON.stringify({
-      fileName: file.name,
-      fileSize: file.size,
-      mimeType: file.type,
-      fileKey: data.fileKey,
-      downloadUrl: data.downloadUrl || null,
-    });
-    addMessage(fileContent, 'user', state.userName || 'You', 'file');
-
-    if (state.socket) {
-      state.socket.emit('send_message', {
-        conversationId: state.chatId,
-        content: fileContent,
-        type: file.type.startsWith('image/') ? 'image' : 'file',
-        metadata: { source: 'widget' },
-      });
-    }
-  } catch (err: any) {
-    console.error('[VoxoraWidget] File upload failed:', err);
-    removeLastPlaceholder();
-    alert('File upload failed: ' + (err.message || 'Unknown error'));
-  }
-}

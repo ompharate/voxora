@@ -1,19 +1,19 @@
 import { DocumentJob } from "../ingestion.types";
 import { streamFromCrawl, streamFromSingleUrl } from "../services/content-stream";
 import { processIngestion } from "../services/process-ingestion";
-import { setDocStatus } from "../../../shared/db/db";
+import { setDocStatus } from "../services/doc-status.service";
 
-/**
- * URL ingestion pipeline:
- *   1. status → "indexing"
- *   2. Fetch page(s) — single or crawl
- *      • crawl: pages are streamed from the async generator and flushed to
- *        Qdrant every PAGE_FLUSH_SIZE pages so memory stays bounded
- *   3. Chunk each page
- *   4. Embed chunks in batches
- *   5. Upsert into Qdrant (idempotent — deletes old vectors first)
- *   6. status → "indexed"  (or "failed" on error)
- */
+
+
+
+
+
+
+
+
+
+
+
 export async function runUrlIngestionPipeline(job: DocumentJob): Promise<void> {
   const {
     organizationId,

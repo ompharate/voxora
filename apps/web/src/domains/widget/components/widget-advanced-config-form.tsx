@@ -6,27 +6,20 @@ import {
   Brush,
   Check,
   ChevronRight,
-  Cpu,
   Layers,
   MessageSquareText,
   Monitor,
-  Paperclip,
+  Moon,
   Shield,
   Smartphone,
+  Sun,
   Timer,
   UserCheck,
   Zap,
 } from "lucide-react";
 import type { CreateWidgetData } from "../types";
-import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
+
 import { Textarea } from "@/shared/ui/textarea";
 import { Badge } from "@/shared/ui/badge";
 
@@ -146,7 +139,6 @@ export function WidgetAdvancedConfigForm({
 
   /* ── Helpers ──────────────────────────────────────────────────────────── */
 
-  const textColor = formData.appearance.textColor || "#111827";
 
   const updateAppearance = (field: keyof CreateWidgetData["appearance"], value: string) =>
     onChange({ ...formData, appearance: { ...formData.appearance, [field]: value } });
@@ -197,60 +189,51 @@ export function WidgetAdvancedConfigForm({
           subtitle="Customize how the launcher and chat window look to visitors."
         />
 
-        {/* Color row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FieldRow label="Text Color" htmlFor="textColor">
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="textColor"
-                className="h-10 w-10 rounded-lg border border-border cursor-pointer flex-shrink-0 shadow-sm overflow-hidden hover:ring-2 hover:ring-ring/30 transition-all"
-                style={{ background: textColor }}
-              >
-                <Input
-                  id="textColor"
-                  type="color"
-                  value={textColor}
-                  onChange={(e) => updateAppearance("textColor", e.target.value)}
-                  className="opacity-0 w-full h-full cursor-pointer"
-                />
-              </label>
-              <Input
-                value={textColor}
-                onChange={(e) => updateAppearance("textColor", e.target.value)}
-                placeholder="#111827"
-                className="h-10 font-mono text-sm uppercase flex-1"
-                pattern="^#[0-9A-Fa-f]{6}$"
-              />
-            </div>
-          </FieldRow>
-
-          <FieldRow label="Position">
-            <Select
-              value={formData.appearance.position}
-              onValueChange={(v) =>
-                updateAppearance("position", v as CreateWidgetData["appearance"]["position"])
-              }
+        {/* Theme selection row */}
+        <div className="space-y-4">
+          <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Widget Theme
+          </Label>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => updateAppearance("theme", "light")}
+              className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border transition-all ${
+                formData.appearance.theme === "light"
+                  ? "border-primary/50 bg-primary/5 ring-2 ring-primary/20 shadow-lg"
+                  : "border-border/60 bg-muted/20 hover:border-border hover:bg-muted/40"
+              }`}
             >
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="Select position" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                <SelectItem value="bottom-left">Bottom Left</SelectItem>
-              </SelectContent>
-            </Select>
-          </FieldRow>
-        </div>
+              <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
+                formData.appearance.theme === "light" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+              }`}>
+                <Sun className="h-6 w-6" />
+              </div>
+              <span className={`text-sm font-semibold ${
+                formData.appearance.theme === "light" ? "text-foreground" : "text-muted-foreground"
+              }`}>Light Mode</span>
+            </button>
 
-        <FieldRow label="Launcher Text" htmlFor="launcherText">
-          <Input
-            id="launcherText"
-            value={formData.appearance.launcherText}
-            onChange={(e) => updateAppearance("launcherText", e.target.value)}
-            placeholder="Chat with us"
-            className="h-10"
-          />
-        </FieldRow>
+            <button
+              type="button"
+              onClick={() => updateAppearance("theme", "dark")}
+              className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border transition-all ${
+                formData.appearance.theme === "dark"
+                  ? "border-primary/50 bg-primary/5 ring-2 ring-primary/20 shadow-lg"
+                  : "border-border/60 bg-muted/20 hover:border-border hover:bg-muted/40"
+              }`}
+            >
+              <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
+                formData.appearance.theme === "dark" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+              }`}>
+                <Moon className="h-6 w-6" />
+              </div>
+              <span className={`text-sm font-semibold ${
+                formData.appearance.theme === "dark" ? "text-foreground" : "text-muted-foreground"
+              }`}>Dark Mode</span>
+            </button>
+          </div>
+        </div>
 
         <FieldRow label="Welcome Message" htmlFor="welcomeMessage">
           <Textarea
@@ -258,7 +241,7 @@ export function WidgetAdvancedConfigForm({
             value={formData.appearance.welcomeMessage}
             onChange={(e) => updateAppearance("welcomeMessage", e.target.value)}
             placeholder="Hi there! How can we help you today?"
-            className="min-h-[96px] resize-none text-sm"
+            className="min-h-[96px] resize-none text-sm rounded-xl"
           />
         </FieldRow>
 
@@ -288,73 +271,8 @@ export function WidgetAdvancedConfigForm({
             checked={formData.ai.fallbackToAgent}
             onCheckedChange={(v) => updateAi("fallbackToAgent", v)}
           />
-          <ToggleCard
-            icon={Timer}
-            label="Auto-assign conversations"
-            description="Automatically route incoming chats to available agents."
-            checked={formData.ai.autoAssign}
-            onCheckedChange={(v) => updateAi("autoAssign", v)}
-          />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-          <FieldRow label="AI Model" htmlFor="aiModel">
-            <Select
-              value={formData.ai.model}
-              onValueChange={(v) => updateAi("model", v)}
-            >
-              <SelectTrigger id="aiModel" className="h-10">
-                <SelectValue placeholder="Select model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gpt-4o-mini">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
-                    GPT-4o mini
-                    <Badge variant="secondary" className="text-xs ml-auto">Fast</Badge>
-                  </div>
-                </SelectItem>
-                <SelectItem value="gpt-4.1-mini">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
-                    GPT-4.1 mini
-                  </div>
-                </SelectItem>
-                <SelectItem value="gpt-4.1">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
-                    GPT-4.1
-                    <Badge variant="secondary" className="text-xs ml-auto">Powerful</Badge>
-                  </div>
-                </SelectItem>
-                <SelectItem value="gpt-4o">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
-                    GPT-4o
-                    <Badge variant="secondary" className="text-xs ml-auto">Best</Badge>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </FieldRow>
-
-          <FieldRow label="Assignment Strategy">
-            <Select
-              value={formData.ai.assignmentStrategy}
-              onValueChange={(v) =>
-                updateAi("assignmentStrategy", v as CreateWidgetData["ai"]["assignmentStrategy"])
-              }
-            >
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="Select strategy" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="round-robin">Round Robin</SelectItem>
-                <SelectItem value="least-loaded">Least Loaded</SelectItem>
-              </SelectContent>
-            </Select>
-          </FieldRow>
-        </div>
       </div>
     ),
 
@@ -458,13 +376,6 @@ export function WidgetAdvancedConfigForm({
           subtitle="Enable or disable advanced widget capabilities."
         />
         <div className="grid gap-3">
-          <ToggleCard
-            icon={Paperclip}
-            label="File & media attachments"
-            description="Allow visitors to send images, documents, and other files."
-            checked={formData.features.acceptMediaFiles}
-            onCheckedChange={(v) => updateFeatures("acceptMediaFiles", v)}
-          />
           <ToggleCard
             icon={Shield}
             label="Host-page DOM access"

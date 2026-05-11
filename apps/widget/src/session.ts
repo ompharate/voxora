@@ -6,7 +6,7 @@
  * This module runs on the CUSTOMER'S domain inside the loader script.
  * It is the ONLY place that reads/writes to customer-domain localStorage.
  *
- * The iframe (on the Voxora domain) NEVER reads customer localStorage.
+ * The iframe (on the InteraOne domain) NEVER reads customer localStorage.
  * Instead, the loader passes the visitor ID and identity to the iframe
  * exclusively via the INIT_WIDGET postMessage.
  *
@@ -20,18 +20,18 @@
  * VISITOR ID
  * ----------
  * A stable anonymous identifier that persists across sessions on the same
- * customer domain. Lives in customer localStorage under 'voxora_visitor_id'.
+ * customer domain. Lives in customer localStorage under 'InteraOne_visitor_id'.
  * Similar to how Segment generates an anonymous ID.
  *
  * EXPLICIT IDENTITY
  * -----------------
- * Set when the host page calls `Voxora.identify(userId, { email, name })`.
+ * Set when the host page calls `InteraOne.identify(userId, { email, name })`.
  * Stored in customer localStorage so it survives page reloads without needing
  * the host page to call identify() again on every load.
  */
 
-const VISITOR_ID_KEY = 'voxora_visitor_id';
-const IDENTITY_KEY = 'voxora_identity';
+const VISITOR_ID_KEY = 'InteraOne_visitor_id';
+const IDENTITY_KEY = 'InteraOne_identity';
 
 // ─── Visitor ID ───────────────────────────────────────────────────────────────
 

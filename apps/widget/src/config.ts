@@ -25,9 +25,9 @@ function toBoolean(value: unknown): boolean | undefined {
   return undefined;
 }
 
-interface WindowVoxoraConfig {
+interface WindowInteraOneConfig {
   publicKey?: string;
-  voxoraPublicKey?: string;
+  InteraOnePublicKey?: string;
   apiUrl?: string;
   cdnUrl?: string;
   fullscreen?: boolean;
@@ -67,45 +67,45 @@ export function getWidgetOrigin(apiUrl: string, cdnUrl?: string): string {
 }
 
 export function getWidgetBaseUrl(apiUrl: string, cdnUrl?: string): string {
-  return `${getWidgetOrigin(apiUrl, cdnUrl)}/voxora-widget/v1`;
+  return `${getWidgetOrigin(apiUrl, cdnUrl)}/interaone-widget/v1`;
 }
 
 /**
  * Parse widget configuration from script tag.
  *
  * Required:
- *   - data-voxora-public-key
+ *   - data-InteraOne-public-key
  *
  * Optional:
- *   - data-voxora-api-url
- *   - data-voxora-cdn-url
+ *   - data-InteraOne-api-url
+ *   - data-InteraOne-cdn-url
  */
 export function parseWidgetConfig(): WidgetConfig | null {
   try {
-    const globalConfig = ((window as Window & { voxoraConfig?: WindowVoxoraConfig }).voxoraConfig) || {};
+    const globalConfig = ((window as Window & { InteraOneConfig?: WindowInteraOneConfig }).InteraOneConfig) || {};
 
     const script =
-      (document.querySelector("script[data-voxora-public-key]") as HTMLScriptElement | null) ||
+      (document.querySelector("script[data-InteraOne-public-key]") as HTMLScriptElement | null) ||
       (document.currentScript as HTMLScriptElement | null) ||
-      Array.from(document.scripts).find((candidate) => candidate.src.includes("voxora.js")) ||
+      Array.from(document.scripts).find((candidate) => candidate.src.includes("InteraOne.js")) ||
       null;
 
     const publicKey =
       globalConfig.publicKey ||
-      globalConfig.voxoraPublicKey ||
-      script?.getAttribute("data-voxora-public-key") ||
-      script?.getAttribute("data-voxora-publickey") ||
+      globalConfig.InteraOnePublicKey ||
+      script?.getAttribute("data-InteraOne-public-key") ||
+      script?.getAttribute("data-InteraOne-publickey") ||
       null;
 
     if (!publicKey) {
-      console.error("[VoxoraWidget] publicKey is required (window.voxoraConfig.publicKey or data-voxora-public-key)");
+      console.error("[InteraOneWidget] publicKey is required (window.InteraOneConfig.publicKey or data-InteraOne-public-key)");
       return null;
     }
 
     // Optional CDN override from attribute; fallback to script src origin.
     let cdnUrl =
       globalConfig.cdnUrl ||
-      script?.getAttribute("data-voxora-cdn-url") ||
+      script?.getAttribute("data-InteraOne-cdn-url") ||
       undefined;
 
     if (!cdnUrl && script?.src) {
@@ -118,18 +118,18 @@ export function parseWidgetConfig(): WidgetConfig | null {
 
     const apiUrl = getApiUrl(
       globalConfig.apiUrl ||
-      script?.getAttribute("data-voxora-api-url") ||
+      script?.getAttribute("data-InteraOne-api-url") ||
       undefined,
     );
 
     const fullscreen =
       toBoolean(globalConfig.fullscreen) ??
-      toBoolean(script?.getAttribute("data-voxora-fullscreen")) ??
+      toBoolean(script?.getAttribute("data-InteraOne-fullscreen")) ??
       false;
 
     const autoOpen =
       toBoolean(globalConfig.autoOpen) ??
-      toBoolean(script?.getAttribute("data-voxora-auto-open")) ??
+      toBoolean(script?.getAttribute("data-InteraOne-auto-open")) ??
       false;
 
     const config: WidgetConfig = {
@@ -142,7 +142,7 @@ export function parseWidgetConfig(): WidgetConfig | null {
 
     return config;
   } catch (error) {
-    console.error("[VoxoraWidget] Error parsing config:", error);
+    console.error("[InteraOneWidget] Error parsing config:", error);
     return null;
   }
 }

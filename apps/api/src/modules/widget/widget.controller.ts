@@ -1,21 +1,21 @@
 import { Request, Response } from "express";
 import { sendResponse, sendError, asyncHandler } from "@shared/utils/response";
-import { Conversation, Message, Team, Widget } from "@shared/models";
+import { Conversation, Message, Widget } from "@shared/models";
 import { getSocketManager } from "@sockets/index";
 import logger from "@shared/utils/logger";
 import config from "@shared/config";
 import jwt from "jsonwebtoken";
 import { getPublicUrl } from "@shared/utils/storage";
+import { tracker } from "@shared/utils/tracker";
 
 const DEFAULT_WIDGET_CONFIG = {
   appearance: {
-    primaryColor: "#10b981",
-    textColor: "#111827",
-    position: "bottom-right" as const,
-    launcherText: "Chat with us",
+    theme: "dark" as const,
+    primaryColor: "#845C6C",
     welcomeMessage: "Hi there! How can we help you today?",
     logoUrl: "",
   },
+  backgroundColor: "#845C6C",
   behavior: {
     autoOpen: false,
     showOnMobile: true,
@@ -25,8 +25,6 @@ const DEFAULT_WIDGET_CONFIG = {
     enabled: true,
     model: "gpt-4o-mini",
     fallbackToAgent: true,
-    autoAssign: true,
-    assignmentStrategy: "least-loaded" as const,
   },
   conversation: {
     collectUserInfo: {
@@ -36,7 +34,6 @@ const DEFAULT_WIDGET_CONFIG = {
     },
   },
   features: {
-    acceptMediaFiles: true,
     endUserDomAccess: false,
   },
 };
@@ -47,24 +44,23 @@ const DEFAULT_WIDGET_CONFIG = {
 
 export const generateWidgetToken = asyncHandler(
   async (req: Request, res: Response) => {
-    const { voxoraPublicKey, origin } = req.body;
+    const { InteraOnePublicKey, origin } = req.body;
 
     try {
-      if (!voxoraPublicKey) {
-        return sendError(res, 400, "Voxora public key is required");
+      if (!InteraOnePublicKey) {
+        return sendError(res, 400, "InteraOne public key is required");
       }
 
-      const widget = await Widget.findById(voxoraPublicKey);
+      const widget = await Widget.findById(InteraOnePublicKey);
 
       if (!widget) {
         return sendError(res, 404, "Widget not found");
       }
 
       const widgetPayload = {
-        publicKey: voxoraPublicKey,
+        InteraOnePublicKey: InteraOnePublicKey,
         displayName: widget.displayName || "Unknown Widget",
         organizationId: widget.organizationId,
-        backgroundColor: widget.backgroundColor || "#FFFFFF",
         origin: origin || req.get("origin") || "unknown",
         type: "widget_session",
       };
@@ -105,18 +101,27 @@ export const validateWidgetToken = asyncHandler(
 export const getWidgetConfig = asyncHandler(
   async (req: Request, res: Response) => {
     try {
-      const { voxoraPublicKey } = req.query as { voxoraPublicKey?: string };
+      const { InteraOnePublicKey } = req.query as { InteraOnePublicKey?: string };
 
-      if (!voxoraPublicKey) {
-        return sendError(res, 400, "voxoraPublicKey is required");
+      if (!InteraOnePublicKey) {
+        return sendError(res, 400, "InteraOne public key is required");
       }
 
-      const widget = await Widget.findById(voxoraPublicKey)
-        .select("displayName logoUrl backgroundColor appearance behavior ai conversation features suggestions")
+      const widget = await Widget.findById(InteraOnePublicKey)
+        .select("organizationId displayName logoUrl backgroundColor appearance behavior ai conversation features suggestions")
         .lean();
 
       if (!widget) {
         return sendError(res, 404, "Widget not found");
+      }
+
+      try {
+        const organizationId = (widget as any).organizationId;
+        if (organizationId) {
+          tracker.trackEvent(organizationId.toString(), "widget_load", "system");
+        }
+      } catch (trackError: any) {
+        logger.warn(`Widget tracking failed: ${trackError?.message || trackError}`);
       }
 
       let logoUrl = (widget as any).logoUrl as string | undefined;
@@ -132,17 +137,12 @@ export const getWidgetConfig = asyncHandler(
       return sendResponse(res, 200, true, "Widget config fetched", {
         config: {
           displayName: (widget as any).displayName,
-          backgroundColor: (widget as any).backgroundColor,
-          logoUrl,
           appearance: {
             ...DEFAULT_WIDGET_CONFIG.appearance,
             ...(widget as any).appearance,
-            primaryColor:
-              (widget as any).appearance?.primaryColor ||
-              (widget as any).backgroundColor ||
-              DEFAULT_WIDGET_CONFIG.appearance.primaryColor,
             logoUrl: appearanceLogoUrl || logoUrl || "",
           },
+          backgroundColor: (widget as any).backgroundColor || DEFAULT_WIDGET_CONFIG.backgroundColor,
           behavior: {
             ...DEFAULT_WIDGET_CONFIG.behavior,
             ...((widget as any).behavior || {}),
@@ -164,11 +164,11 @@ export const getWidgetConfig = asyncHandler(
           suggestions: Array.isArray((widget as any).suggestions)
             ? (widget as any).suggestions
             : [
-                { text: "What can you help me with?", showOutside: true },
-                { text: "I need help with my order", showOutside: false },
-                { text: "Talk to a human agent", showOutside: true },
-                { text: "What are your business hours?", showOutside: false },
-              ],
+              { text: "What can you help me with?", showOutside: true },
+              { text: "I need help with my order", showOutside: false },
+              { text: "Talk to a human agent", showOutside: true },
+              { text: "What are your business hours?", showOutside: false },
+            ],
         },
       });
     } catch (error: any) {
@@ -190,11 +190,10 @@ export const initConversation = asyncHandler(
   async (req: Request, res: Response) => {
     const {
       message,
-      voxoraPublicKey,
+      InteraOnePublicKey,
       visitorName,
       visitorEmail,
       sessionId,
-      teamId,
       department,
     } = req.body;
 
@@ -208,19 +207,16 @@ export const initConversation = asyncHandler(
         `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       const isAnonymous = !visitorName || !visitorEmail;
-      const organizationId = (req as any).widgetSession.organizationId as string;
+      const widgetSession = (req as any).widgetSession as
+        | { organizationId?: string; InteraOnePublicKey?: string }
+        | undefined;
 
-      let assignedTeamId: string | null = teamId || null;
-      const assignedAgentId: string | null = null;
-
-      if (!assignedTeamId && department) {
-        const team = await Team.findOne({
-          organizationId,
-          name: new RegExp(department, "i"),
-          isActive: true,
-        });
-        assignedTeamId = team?._id?.toString() || null;
+      const organizationId = widgetSession?.organizationId;
+      if (!organizationId) {
+        return sendError(res, 401, "Invalid widget session");
       }
+
+      const assignedAgentId: string | null = null;
 
       // Keep new widget conversations unassigned.
       // Human assignment should happen only after an explicit escalation.
@@ -250,15 +246,10 @@ export const initConversation = asyncHandler(
             initialMessage: message,
             startedAt: new Date(),
           },
-          widgetKey: voxoraPublicKey || null,
+          widgetKey: InteraOnePublicKey || widgetSession?.InteraOnePublicKey || null,
           source: "widget",
-          teamId: assignedTeamId,
           department: department || null,
-          routingStrategy: teamId
-            ? "manual"
-            : department
-              ? "department"
-              : "auto",
+          routingStrategy: department ? "department" : "auto",
         },
       });
 
@@ -309,13 +300,8 @@ export const initConversation = asyncHandler(
           assignedTo: assignedAgentId,
           assignedAgent: assignedAgentId,
           metadata: {
-            teamId: assignedTeamId?.toString(),
             department: department || null,
-            routingStrategy: teamId
-              ? "manual"
-              : department
-                ? "department"
-                : "auto",
+            routingStrategy: department ? "department" : "auto",
           },
         },
       );
@@ -474,7 +460,6 @@ export const getWidgetConversations = asyncHandler(
                 ? (conv.assignedTo as any)._id
                 : conv.assignedTo,
             assignedAgent: agentName,
-            assignedTeam: conv.metadata?.teamId,
             lastMessage: lastMessage
               ? {
                 content: lastMessage.content,
@@ -536,31 +521,6 @@ export const deleteConversation = asyncHandler(
   },
 );
 
-export const getUploadUrl = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { fileName, mimeType } = req.body;
-    if (!fileName || !mimeType) {
-      return sendError(res, 400, "fileName and mimeType are required");
-    }
-    const allowed = [
-      "image/jpeg", "image/png", "image/gif", "image/webp",
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "text/plain",
-    ];
-    if (!allowed.includes(mimeType)) {
-      return sendError(res, 400, "File type not allowed");
-    }
-    try {
-      const StorageService = (await import("../storage/storage.service")).default;
-      const result = await StorageService.generateConversationUploadUrl(fileName, mimeType);
-      sendResponse(res, 200, true, "Upload URL generated", result);
-    } catch (err: any) {
-      sendError(res, 500, err.message || "Failed to generate upload URL");
-    }
-  },
-);
 
 export const getConversationMessages = asyncHandler(
   async (req: Request, res: Response) => {

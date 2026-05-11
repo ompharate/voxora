@@ -21,10 +21,6 @@ router.patch(
   AgentController.updateStatus,
 );
 
-router.get("/teams", AgentController.getTeams);
-router.get("/teams/all", AgentController.getAllTeams);
-router.get("/teams/:id/members", AgentController.getTeamMembers);
-router.get("/teams/:id/all-members", AgentController.getAllTeamMembers);
 router.get("/stats", AgentController.getStats);
 
 export default router;

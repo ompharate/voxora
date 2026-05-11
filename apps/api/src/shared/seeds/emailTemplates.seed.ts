@@ -12,14 +12,14 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSeed[] = [
   {
     templateKey: "global.invite",
     type: "invite",
-    subjectTemplate: "You're invited to join Voxora as a {{role}}",
+    subjectTemplate: "You're invited to join InteraOne as a {{role}}",
     htmlTemplate: `
 <!DOCTYPE html>
 <html>dcc
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>You're Invited to Join Voxora</title>
+  <title>You're Invited to Join InteraOne</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -38,13 +38,13 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSeed[] = [
     <div class="content">
       <h2>Hello!</h2>
       <p>{{bodyText}}</p>
-      <p>Voxora is a powerful real-time chat support platform that helps teams provide exceptional customer service.</p>
+      <p>InteraOne is a powerful real-time chat support platform that helps teams provide exceptional customer service.</p>
       <p>Click the button below to accept your invitation and set up your account:</p>
       <a href="{{inviteUrl}}" class="button">Accept Invitation</a>
       <p><strong>Note:</strong> This invitation will expire in 7 days.</p>
     </div>
     <div class="footer">
-      <p>© 2025 Voxora. All rights reserved.</p>
+      <p>© 2025 InteraOne. All rights reserved.</p>
       <p>If you didn't expect this invitation, you can safely ignore this email.</p>
     </div>
   </div>
@@ -54,14 +54,14 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSeed[] = [
   {
     templateKey: "global.password_reset",
     type: "password_reset",
-    subjectTemplate: "Reset your Voxora password",
+    subjectTemplate: "Reset your InteraOne password",
     htmlTemplate: `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reset Your Voxora Password</title>
+  <title>Reset Your InteraOne Password</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -75,18 +75,18 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSeed[] = [
   <div class="container">
     <div class="header">
       <h1>🔐 Password Reset</h1>
-      <p>Reset your Voxora password</p>
+      <p>Reset your InteraOne password</p>
     </div>
     <div class="content">
       <h2>Hello {{name}}!</h2>
-      <p>We received a request to reset your password for your Voxora account.</p>
+      <p>We received a request to reset your password for your InteraOne account.</p>
       <p>Click the button below to reset your password:</p>
       <a href="{{resetUrl}}" class="button">Reset Password</a>
       <p><strong>Note:</strong> This link will expire in 10 minutes for security reasons.</p>
       <p>If you didn't request this password reset, you can safely ignore this email.</p>
     </div>
     <div class="footer">
-      <p>© 2025 Voxora. All rights reserved.</p>
+      <p>© 2025 InteraOne. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -95,14 +95,14 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSeed[] = [
   {
     templateKey: "global.welcome",
     type: "welcome",
-    subjectTemplate: "Welcome to Voxora - Your account is ready!",
+    subjectTemplate: "Welcome to InteraOne - Your account is ready!",
     htmlTemplate: `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Voxora!</title>
+  <title>Welcome to InteraOne!</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -115,12 +115,12 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSeed[] = [
 <body>
   <div class="container">
     <div class="header">
-      <h1>🎉 Welcome to Voxora!</h1>
+      <h1>🎉 Welcome to InteraOne!</h1>
       <p>Your account is ready</p>
     </div>
     <div class="content">
       <h2>Hello {{name}}!</h2>
-      <p>Welcome to Voxora! Your account has been successfully created as a <strong>{{role}}</strong>.</p>
+      <p>Welcome to InteraOne! Your account has been successfully created as a <strong>{{role}}</strong>.</p>
       <p>You can now access your dashboard and start providing excellent customer support.</p>
       <a href="{{loginUrl}}" class="button">Login to Dashboard</a>
       <h3>Getting Started:</h3>
@@ -133,7 +133,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSeed[] = [
       <p>If you have any questions, don't hesitate to reach out to your team lead or administrator.</p>
     </div>
     <div class="footer">
-      <p>© 2025 Voxora. All rights reserved.</p>
+      <p>© 2025 InteraOne. All rights reserved.</p>
     </div>
   </div>
 </body>

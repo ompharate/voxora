@@ -1,14 +1,13 @@
 import mongoose from "mongoose";
 import crypto from "crypto";
-import { Team, Widget, Membership, MembershipRole } from "@shared/models";
+import { Widget, Membership, MembershipRole } from "@shared/models";
 import logger from "@shared/utils/logger";
 
 const DEFAULT_WIDGET_SETTINGS = {
+  backgroundColor: "#845C6C",
   appearance: {
-    primaryColor: "#10b981",
-    textColor: "#ffffff",
-    position: "bottom-right" as const,
-    launcherText: "Chat with us",
+    theme: "dark" as const,
+    primaryColor: "#845C6C",
     welcomeMessage: "Hi there! How can we help you today?",
     logoUrl: "",
   },
@@ -21,8 +20,6 @@ const DEFAULT_WIDGET_SETTINGS = {
     enabled: true,
     model: "gpt-4o-mini",
     fallbackToAgent: true,
-    autoAssign: true,
-    assignmentStrategy: "least-loaded" as const,
   },
   conversation: {
     collectUserInfo: {
@@ -32,7 +29,6 @@ const DEFAULT_WIDGET_SETTINGS = {
     },
   },
   features: {
-    acceptMediaFiles: true,
     endUserDomAccess: false,
   },
   suggestions: [
@@ -49,10 +45,6 @@ function withWidgetConfigDefaults(input: any): any {
     ...DEFAULT_WIDGET_SETTINGS.appearance,
     ...(input.appearance || {}),
     logoUrl: input.appearance?.logoUrl ?? input.logoUrl ?? "",
-    primaryColor:
-      input.appearance?.primaryColor ??
-      input.backgroundColor ??
-      DEFAULT_WIDGET_SETTINGS.appearance.primaryColor,
   };
   output.behavior = { ...DEFAULT_WIDGET_SETTINGS.behavior, ...(input.behavior || {}) };
   output.ai = { ...DEFAULT_WIDGET_SETTINGS.ai, ...(input.ai || {}) };
@@ -76,103 +68,6 @@ function withWidgetConfigDefaults(input: any): any {
 }
 
 export class AdminService {
-  // ═══════════════════════════════════════════════════
-  //  TEAM MANAGEMENT
-  // ═══════════════════════════════════════════════════
-
-  async getTeams(
-    organizationId: string,
-    options: { page: number; limit: number; search?: string },
-  ) {
-    const { page, limit, search } = options;
-
-    const query: any = { organizationId, isActive: true };
-
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    const teams = await Team.find(query)
-      .populate("createdBy", "name email")
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
-
-    const total = await Team.countDocuments(query);
-
-    return {
-      teams,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        itemsPerPage: limit,
-      },
-    };
-  }
-
-  async getTeamById(organizationId: string, id: string) {
-    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid team ID");
-
-    return Team.findOne({ _id: id, organizationId, isActive: true }).populate(
-      "createdBy",
-      "name email",
-    );
-  }
-
-  async createTeam(organizationId: string, teamData: any) {
-    const team = new Team({
-      organizationId,
-      name: teamData.name,
-      description: teamData.description,
-      color: teamData.color || "#3b82f6",
-      createdBy: teamData.createdBy,
-    });
-
-    await team.save();
-
-    logger.info("Team created successfully", {
-      teamId: team._id,
-      organizationId,
-      name: team.name,
-      createdBy: teamData.createdBy,
-    });
-
-    return team;
-  }
-
-  async updateTeam(organizationId: string, id: string, updateData: any) {
-    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid team ID");
-
-    const team = await Team.findOneAndUpdate(
-      { _id: id, organizationId, isActive: true },
-      updateData,
-      { new: true, runValidators: true },
-    ).populate("createdBy", "name email");
-
-    return team;
-  }
-
-  async deleteTeam(organizationId: string, id: string) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return { success: false, message: "Invalid team ID", statusCode: 400 };
-    }
-
-    const team = await Team.findOne({ _id: id, organizationId, isActive: true });
-    if (!team) return { success: false, message: "Team not found", statusCode: 404 };
-
-    await Team.findByIdAndDelete(id);
-
-    // Remove team from all memberships in this org
-    await Membership.updateMany({ organizationId }, { $pull: { teams: id } });
-
-    logger.info("Team deleted successfully", { teamId: id, teamName: team.name, organizationId });
-    return { success: true };
-  }
-
   // ═══════════════════════════════════════════════════
   //  AGENT MANAGEMENT (via Membership)
   // ═══════════════════════════════════════════════════
@@ -204,7 +99,6 @@ export class AdminService {
         membershipId: m._id,
         user: m.userId,
         role: m.role,
-        teams: m.teams,
         inviteStatus: m.inviteStatus,
         invitedAt: m.invitedAt,
         activatedAt: m.activatedAt,
@@ -222,8 +116,7 @@ export class AdminService {
     if (!mongoose.Types.ObjectId.isValid(userId)) throw new Error("Invalid user ID");
 
     const membership = await Membership.findOne({ userId, organizationId })
-      .populate("userId", "name email avatar status lastSeen")
-      .populate("teams", "name color");
+      .populate("userId", "name email avatar status lastSeen");
 
     return membership;
   }
@@ -236,19 +129,13 @@ export class AdminService {
     const updateFields: any = {};
 
     if (updateData.role) updateFields.role = updateData.role as MembershipRole;
-    if (updateData.teamIds) {
-      updateFields.teams = updateData.teamIds.map(
-        (id: string) => new mongoose.Types.ObjectId(id),
-      );
-    }
 
     const membership = await Membership.findOneAndUpdate(
       { userId, organizationId },
       updateFields,
       { new: true, runValidators: true },
     )
-      .populate("userId", "name email avatar status")
-      .populate("teams", "name color");
+      .populate("userId", "name email avatar status");
 
     if (!membership) {
       return { success: false, message: "Agent not found in this organization", statusCode: 404 };
@@ -314,8 +201,7 @@ export class AdminService {
     if (!widget) {
       widget = new Widget({
         organizationId,
-        displayName: "Voxora Ai",
-        backgroundColor: "#10b981",
+        displayName: "InteraOne AI",
         ...DEFAULT_WIDGET_SETTINGS,
         publicKey: crypto.randomBytes(16).toString("hex"),
       });
@@ -347,7 +233,6 @@ export class AdminService {
     const allowedUpdates = {
       displayName: normalizedUpdateData.displayName,
       logoUrl: normalizedUpdateData.logoUrl,
-      backgroundColor: normalizedUpdateData.backgroundColor,
       appearance: normalizedUpdateData.appearance,
       behavior: normalizedUpdateData.behavior,
       ai: normalizedUpdateData.ai,
@@ -368,8 +253,7 @@ export class AdminService {
     if (!widget) {
       widget = new Widget({
         organizationId,
-        displayName: normalizedUpdateData.displayName || "Voxora Ai",
-        backgroundColor: normalizedUpdateData.backgroundColor || "#10b981",
+        displayName: normalizedUpdateData.displayName || "InteraOne AI",
         logoUrl: normalizedUpdateData.logoUrl,
         appearance: normalizedUpdateData.appearance,
         behavior: normalizedUpdateData.behavior,
@@ -389,8 +273,6 @@ export class AdminService {
   // ═══════════════════════════════════════════════════
 
   async getDashboardStats(organizationId: string) {
-    const totalTeams = await Team.countDocuments({ organizationId, isActive: true });
-
     const totalAgents = await Membership.countDocuments({
       organizationId,
       role: "agent",
@@ -413,24 +295,6 @@ export class AdminService {
       (m) => (m.userId as any)?.status === "online",
     ).length;
 
-    const teamStats = await Team.aggregate([
-      { $match: { organizationId: new mongoose.Types.ObjectId(organizationId), isActive: true } },
-      {
-        $lookup: {
-          from: "memberships",
-          localField: "_id",
-          foreignField: "teams",
-          as: "memberEntries",
-        },
-      },
-      {
-        $project: {
-          name: 1,
-          agentCount: { $size: "$memberEntries" },
-        },
-      },
-    ]);
-
     const recentMembers = await Membership.find({
       organizationId,
       inviteStatus: { $in: ["active", "pending"] },
@@ -441,8 +305,7 @@ export class AdminService {
       .limit(5);
 
     return {
-      overview: { totalTeams, totalAgents, onlineAgents, pendingInvites },
-      teamStats,
+      overview: { totalAgents, onlineAgents, pendingInvites },
       recentAgents: recentMembers.map((m: any) => ({
         _id: m._id,
         name: m.userId?.name,

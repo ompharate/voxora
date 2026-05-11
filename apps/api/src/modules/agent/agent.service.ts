@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { Membership, Team, Conversation } from "@shared/models";
+import { Membership, Conversation } from "@shared/models";
 import { User } from "@shared/models";
 import logger from "@shared/utils/logger";
 
@@ -10,8 +10,7 @@ export class AgentService {
 
   async getAgentProfile(userId: string, organizationId: string) {
     const membership = await Membership.findOne({ userId, organizationId })
-      .populate("userId", "-password")
-      .populate("teams", "name color description");
+      .populate("userId", "-password");
     return membership;
   }
 
@@ -41,58 +40,7 @@ export class AgentService {
     return agent ? { status: agent.status, lastSeen: agent.lastSeen } : null;
   }
 
-  // ═══════════════════════════════════════════════════
-  //  TEAM INFORMATION (org-scoped)
-  // ═══════════════════════════════════════════════════
-
-  async getAgentTeams(userId: string, organizationId: string) {
-    const membership = await Membership.findOne({ userId, organizationId }).populate(
-      "teams",
-      "name description color agentCount",
-    );
-    return membership?.teams || [];
-  }
-
-  async getTeamMembers(userId: string, organizationId: string, teamId: string) {
-    if (!mongoose.Types.ObjectId.isValid(teamId)) throw new Error("Invalid team ID");
-
-    // Verify the requesting agent is in this org
-    const membership = await Membership.findOne({ userId, organizationId });
-    if (!membership) return null;
-
-    // Get all members in the org who are in this team
-    const members = await Membership.find({
-      organizationId,
-      teams: teamId,
-      inviteStatus: "active",
-    }).populate("userId", "name email status lastSeen avatar");
-
-    return members.map((m) => ({
-      user: m.userId,
-      role: m.role,
-      membershipId: m._id,
-    }));
-  }
-
-  async getAllTeams(organizationId: string) {
-    return Team.find({ organizationId, isActive: { $ne: false } })
-      .select("name description color agentCount")
-      .sort({ name: 1 });
-  }
-
-  async getAllTeamMembers(organizationId: string, teamId: string) {
-    if (!mongoose.Types.ObjectId.isValid(teamId)) throw new Error("Invalid team ID");
-
-    const members = await Membership.find({
-      organizationId,
-      teams: teamId,
-      inviteStatus: "active",
-    }).populate("userId", "name email status lastSeen");
-
-    return members.map((m) => ({ user: m.userId, role: m.role }));
-  }
-
-  // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
   //  AGENT STATS (org-scoped)
   // ═══════════════════════════════════════════════════
 

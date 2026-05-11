@@ -6,7 +6,7 @@
 #
 # API_HOST  — domain/IP that serves the backend API and sockets
 #             e.g.  api.example.com   or   1.2.3.4
-# WEB_HOST  — domain/IP that serves the Next.js frontend
+# WEB_HOST  — domain/IP that serves the Vite frontend
 #             e.g.  app.example.com   (can be the same as API_HOST)
 # CDN_HOST  — subdomain for MinIO (file storage / widget JS delivery)
 #             e.g.  cdn.example.com

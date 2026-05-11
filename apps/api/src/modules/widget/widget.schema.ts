@@ -2,12 +2,11 @@ import Joi from "joi";
 
 export const widgetSchema = {
   createConversation: Joi.object({
-    voxoraPublicKey: Joi.string().required(),
+    InteraOnePublicKey: Joi.string().required(),
     message: Joi.string().required(),
     visitorName: Joi.string().min(1).max(100).optional(),
     visitorEmail: Joi.string().email().optional(),
     sessionId: Joi.string().optional(),
-    teamId: Joi.string().optional(),
     department: Joi.string().max(100).optional(),
   }).options({ stripUnknown: true }),
 

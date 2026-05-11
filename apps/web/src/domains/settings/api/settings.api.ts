@@ -5,12 +5,7 @@ export interface UpdateOrganizationPayload {
   name?: string;
   slug?: string;
   logoUrl?: string;
-  emailSender?: {
-    fromEmail?: string;
-    fromName?: string;
-    domain?: string;
-    verified?: boolean;
-  };
+
 }
 
 export const settingsApi = {

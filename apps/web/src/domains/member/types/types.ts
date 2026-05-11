@@ -11,11 +11,7 @@ export interface Member {
   };
   role: OrgRole;
   inviteStatus: "active" | "pending" | "inactive";
-  teams: {
-    _id: string;
-    name: string;
-    color?: string;
-  }[];
+
   activatedAt?: string;
   organizationId: string;
 }
@@ -24,14 +20,14 @@ export interface MemberFormData {
   name: string;
   email: string;
   role: OrgRole;
-  teamIds: string[];
+
 }
 
 export interface InviteMemberData {
   email: string;
   name: string;
   role: OrgRole;
-  teamIds?: string[];
+
 }
 
 export interface UpdateMemberRoleData {

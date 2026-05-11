@@ -2,16 +2,16 @@ import { useEffect } from "react";
 import { useParams } from "react-router";
 
 const WIDGET_SCRIPT_SRC =
-  import.meta.env.VITE_CDN_URL ||
-  "http://localhost:9001/voxora-widget/v1/voxora.js";
+  import.meta.env.VITE_WIDGET_URL ||
+  "http://localhost:9001/interaone-widget/v1/InteraOne.js";
 
-interface WindowWithVoxoraConfig extends Window {
-  voxoraConfig?: {
+interface WindowWithInteraOneConfig extends Window {
+  InteraOneConfig?: {
     publicKey: string;
     fullscreen: boolean;
     autoOpen: boolean;
   };
-  Voxora?: {
+  InteraOne?: {
     open?: () => void;
     destroy?: () => void;
   };
@@ -23,7 +23,7 @@ export default function QRScannerLandingPage() {
   useEffect(() => {
     if (!publicKey) return;
 
-    const win = window as WindowWithVoxoraConfig;
+    const win = window as WindowWithInteraOneConfig;
     let retries = 0;
     let openTimer: ReturnType<typeof window.setInterval> | null = null;
 
@@ -31,7 +31,7 @@ export default function QRScannerLandingPage() {
       // Retry a few times because the external script may initialize after route mount.
       openTimer = window.setInterval(() => {
         retries += 1;
-        win.Voxora?.open?.();
+        win.InteraOne?.open?.();
         if (retries >= 20) {
           if (openTimer) {
             window.clearInterval(openTimer);
@@ -42,24 +42,24 @@ export default function QRScannerLandingPage() {
     };
 
     // Ensure a clean slate when users revisit this route.
-    document.getElementById("voxora-qr-script")?.remove();
-    document.getElementById("voxora-chat-button")?.remove();
-    document.getElementById("voxora-widget-iframe")?.remove();
-    win.Voxora?.destroy?.();
+    document.getElementById("InteraOne-qr-script")?.remove();
+    document.getElementById("InteraOne-chat-button")?.remove();
+    document.getElementById("InteraOne-widget-iframe")?.remove();
+    win.InteraOne?.destroy?.();
 
-    win.voxoraConfig = {
+    win.InteraOneConfig = {
       publicKey,
       fullscreen: true,
       autoOpen: true,
     };
 
     const script = document.createElement("script");
-    script.id = "voxora-qr-script";
+    script.id = "InteraOne-qr-script";
     script.src = `${WIDGET_SCRIPT_SRC}${WIDGET_SCRIPT_SRC.includes("?") ? "&" : "?"}v=${Date.now()}`;
     script.async = true;
-    script.setAttribute("data-voxora-public-key", publicKey);
-    script.setAttribute("data-voxora-fullscreen", "true");
-    script.setAttribute("data-voxora-auto-open", "true");
+    script.setAttribute("data-InteraOne-public-key", publicKey);
+    script.setAttribute("data-InteraOne-fullscreen", "true");
+    script.setAttribute("data-InteraOne-auto-open", "true");
     script.addEventListener("load", ensureOpened, { once: true });
     document.body.appendChild(script);
 
@@ -68,18 +68,18 @@ export default function QRScannerLandingPage() {
         window.clearInterval(openTimer);
         openTimer = null;
       }
-      win.Voxora?.destroy?.();
-      document.getElementById("voxora-qr-script")?.remove();
-      document.getElementById("voxora-chat-button")?.remove();
-      document.getElementById("voxora-widget-iframe")?.remove();
-      delete win.voxoraConfig;
+      win.InteraOne?.destroy?.();
+      document.getElementById("InteraOne-qr-script")?.remove();
+      document.getElementById("InteraOne-chat-button")?.remove();
+      document.getElementById("InteraOne-widget-iframe")?.remove();
+      delete win.InteraOneConfig;
     };
   }, [publicKey]);
 
   if (!publicKey) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background px-6 text-center">
-        <p className="text-sm text-muted-foreground">Invalid chat link. Please scan a valid Voxora QR code.</p>
+        <p className="text-sm text-muted-foreground">Invalid chat link. Please scan a valid InteraOne QR code.</p>
       </main>
     );
   }

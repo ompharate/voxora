@@ -2,7 +2,7 @@ import { QdrantClient } from "@qdrant/js-client-rest";
 import config from "../../config";
 import { VectorStore, VectorSearchResult } from "./vector.types";
 
-const COLLECTION = "voxora_knowledge";
+const COLLECTION = "intearOne_knowledge";
 
 class QdrantVectorStore implements VectorStore {
   private client: QdrantClient;
@@ -18,7 +18,7 @@ class QdrantVectorStore implements VectorStore {
     const existing = await this.client.collectionExists(COLLECTION);
 
     if (existing.exists) {
-      // Verify dimensions match — recreate if they don't (e.g. model was swapped)
+
       const info = await this.client.getCollection(COLLECTION);
       const existingSize = (info.config?.params?.vectors as any)?.size as number | undefined;
       if (existingSize === dimensions) return;
@@ -33,7 +33,7 @@ class QdrantVectorStore implements VectorStore {
       vectors: { size: dimensions, distance: "Cosine" },
     });
 
-    // Index documentId and organizationId fields for fast filtered search
+
     await this.client.createPayloadIndex(COLLECTION, {
       field_name: "organizationId",
       field_schema: "keyword",
@@ -82,7 +82,7 @@ class QdrantVectorStore implements VectorStore {
       const pointsCount = collectionInfo.points_count || 0;
       console.log(`[Qdrant]   Collection exists: YES`);
       console.log(`[Qdrant]   Total points: ${pointsCount}`);
-      
+
       if (pointsCount === 0) {
         console.log(`[Qdrant]   ⚠️  Collection is EMPTY - no documents ingested yet`);
       }
@@ -110,7 +110,7 @@ class QdrantVectorStore implements VectorStore {
 
     console.log(`[Qdrant]   ✓ Search completed`);
     console.log(`[Qdrant]   Results found: ${results.length}`);
-    
+
     if (results.length > 0) {
       console.log(`[Qdrant]   Top matches:`);
       results.slice(0, 3).forEach((r, i) => {

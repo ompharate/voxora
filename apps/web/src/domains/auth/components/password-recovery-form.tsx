@@ -21,6 +21,7 @@ import {
 import { Alert } from "@/shared/ui/alert";
 import { validateEmail, validatePassword } from "@/shared/lib/validation";
 import { useForgotPassword, useResetPassword } from "../hooks";
+import Logo from "@/shared/components/logo";
 
 export function PasswordRecoveryForm() {
   const [searchParams] = useSearchParams();
@@ -235,9 +236,7 @@ export function PasswordRecoveryForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-lg">V</span>
-            </div>
+            <Logo size={56} animate={false} />
           </div>
           <CardTitle className="text-2xl text-center">Reset Password</CardTitle>
           <CardDescription className="text-center">
@@ -349,9 +348,7 @@ export function PasswordRecoveryForm() {
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
         <div className="flex items-center justify-center mb-4">
-          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold text-lg">V</span>
-          </div>
+          <Logo size={56} animate={false} />
         </div>
         <CardTitle className="text-2xl text-center">Forgot Password</CardTitle>
         <CardDescription className="text-center">

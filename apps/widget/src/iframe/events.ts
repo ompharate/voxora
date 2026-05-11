@@ -1,6 +1,6 @@
 import { state, API_BASE_URL, PROTO_VERSION } from './config';
 import { elements, addMessage, adjustTextareaHeight, hideWelcomeScreen, showTypingDots, removeTypingDots, formatHistoryDateTime, scrollToBottom } from './ui';
-import { makeAuthenticatedRequest, fetchMessagesFromBackend, uploadAndSendFile } from './api';
+import { makeAuthenticatedRequest, fetchMessagesFromBackend } from './api';
 import { initializeSocket } from './socket';
 
 function clearWidgetStateChrome() {
@@ -25,10 +25,10 @@ function setComposerEnabled(enabled: boolean, placeholder?: string) {
     }
   }
 
-  if (elements.attachBtn) elements.attachBtn.disabled = !enabled;
+
 }
 
-function showStateBanner(stateType: 'human' | 'resolved' | 'closed', title: string, subtitle?: string) {
+function showStateBanner(stateType: 'human' | 'closed', title: string, subtitle?: string) {
   const topbar = document.querySelector('.widget-topbar');
   if (!topbar) return;
 
@@ -50,19 +50,19 @@ function showStateBanner(stateType: 'human' | 'resolved' | 'closed', title: stri
   `;
 }
 
-function showOutcomePanel(status: 'resolved' | 'closed') {
+function showOutcomePanel(status: 'closed') {
   const messagesContainer = elements.messagesContainer;
   if (!messagesContainer) return;
 
   document.getElementById('conv-closed-banner')?.remove();
 
   const panel = document.createElement('div');
-  panel.className = `conv-outcome-panel ${status === 'resolved' ? 'resolved' : 'closed'}`;
+  panel.className = 'conv-outcome-panel closed';
   panel.id = 'conv-closed-banner';
   panel.innerHTML = `
-    <div class="outcome-icon">${status === 'resolved' ? '✅' : '🔒'}</div>
+    <div class="outcome-icon">🔒</div>
     <div class="outcome-content">
-      <div class="outcome-title">${status === 'resolved' ? 'Conversation resolved' : 'Conversation closed'}</div>
+      <div class="outcome-title">Conversation closed</div>
       <div class="outcome-sub">You can start a fresh chat anytime if you need more help.</div>
     </div>
     <button class="outcome-cta" id="bannerNewChatBtn">Start new chat</button>
@@ -76,10 +76,10 @@ function showOutcomePanel(status: 'resolved' | 'closed') {
 function applyConversationVisualStateFromHistory(conversation: any) {
   const status = (conversation?.status || 'open').toLowerCase();
 
-  if (status === 'resolved' || status === 'closed') {
-    showStateBanner(status === 'resolved' ? 'resolved' : 'closed', status === 'resolved' ? 'Conversation resolved' : 'Conversation closed', 'Start a new chat if you need more help');
-    setComposerEnabled(false, status === 'resolved' ? 'Conversation resolved. Start a new chat.' : 'Conversation closed. Start a new chat.');
-    showOutcomePanel(status === 'resolved' ? 'resolved' : 'closed');
+  if (status === 'closed') {
+    showStateBanner('closed', 'Conversation closed', 'Start a new chat if you need more help');
+    setComposerEnabled(false, 'Conversation closed. Start a new chat.');
+    showOutcomePanel('closed');
     return;
   }
 
@@ -112,21 +112,10 @@ export function setupEventListeners() {
     elements.messageInput.addEventListener('blur', () => {
       typingStop();
     });
-  }
-
-  if (elements.sendBtn) {
+  } if (elements.sendBtn) {
     elements.sendBtn.addEventListener("click", sendMessage);
   }
 
-  if (elements.attachBtn && elements.fileInput) {
-    elements.attachBtn.addEventListener('click', () => elements.fileInput.click());
-    elements.fileInput.addEventListener('change', function(this: HTMLInputElement) {
-      if (this.files && this.files[0]) {
-        uploadAndSendFile(this.files[0]);
-        this.value = '';
-      }
-    });
-  }
 
   if (elements.historyBtn && elements.historyOverlay && elements.closeHistoryBtn) {
     // Open history
@@ -175,6 +164,10 @@ export function setupEventListeners() {
     });
   }
 
+  if (elements.newChatBtn) {
+    elements.newChatBtn.addEventListener('click', () => startNewConversation());
+  }
+
   if (elements.suggestionsContainer && elements.messageInput) {
     elements.suggestionsContainer.addEventListener('click', (e) => {
       const btn = (e.target as Element).closest('.suggestion-btn') as HTMLButtonElement | null;
@@ -197,12 +190,12 @@ function getPageContext(): Promise<string> {
   const domAccessEnabled = state._uiConfig && state._uiConfig.features && state._uiConfig.features.endUserDomAccess;
   if (!domAccessEnabled) return Promise.resolve('');
 
-  return new Promise(function(resolve) {
-    const timeout = setTimeout(function() {
+  return new Promise(function (resolve) {
+    const timeout = setTimeout(function () {
       window.removeEventListener('message', handler);
       const parts = [];
-      if ((window as any).__voxoraPageUrl)   parts.push('Page URL: '   + (window as any).__voxoraPageUrl);
-      if ((window as any).__voxoraPageTitle) parts.push('Page Title: ' + (window as any).__voxoraPageTitle);
+      if ((window as any).__InteraOnePageUrl) parts.push('Page URL: ' + (window as any).__InteraOnePageUrl);
+      if ((window as any).__InteraOnePageTitle) parts.push('Page Title: ' + (window as any).__InteraOnePageTitle);
       resolve(parts.length ? '\\n\\n[PAGE_CONTEXT]\\n' + parts.join('\\n') : '');
     }, 600);
 
@@ -212,9 +205,9 @@ function getPageContext(): Promise<string> {
       window.removeEventListener('message', handler);
       const html = (event.data.payload && event.data.payload.html) || '';
       const parts = [];
-      if ((window as any).__voxoraPageUrl)   parts.push('Page URL: '   + (window as any).__voxoraPageUrl);
-      if ((window as any).__voxoraPageTitle) parts.push('Page Title: ' + (window as any).__voxoraPageTitle);
-      if (html)                     parts.push('Page HTML:\\n' + html);
+      if ((window as any).__InteraOnePageUrl) parts.push('Page URL: ' + (window as any).__InteraOnePageUrl);
+      if ((window as any).__InteraOnePageTitle) parts.push('Page Title: ' + (window as any).__InteraOnePageTitle);
+      if (html) parts.push('Page Content:\\n' + html);
       resolve(parts.length ? '\\n\\n[PAGE_CONTEXT]\\n' + parts.join('\\n') : '');
     }
 
@@ -231,7 +224,7 @@ async function sendMessage() {
   if (!text) return;
 
   if (!state.widgetToken) {
-    console.warn('[VoxoraWidget] sendMessage called before token ready — ignoring');
+    console.warn('[InteraOneWidget] sendMessage called before token ready — ignoring');
     return;
   }
 
@@ -240,8 +233,8 @@ async function sendMessage() {
   elements.messageInput.value = "";
   adjustTextareaHeight();
   if (elements.sendBtn) elements.sendBtn.disabled = true;
-  
-  if (!state._escalationShown) showTypingDots();
+
+  if (!state._escalationShown) showTypingDots(text);
 
   if (!state.chatId) {
     try {
@@ -250,7 +243,7 @@ async function sendMessage() {
         visitorName: state.userName || undefined,
         visitorEmail: state.userEmail || undefined,
         message: text + pageContext,
-        voxoraPublicKey: state.voxoraPublicKey,
+        InteraOnePublicKey: state.InteraOnePublicKey,
         sessionId: state.currentSessionId,
       };
 
@@ -386,8 +379,9 @@ function renderHistoryList(convs: any[]) {
     const titleRaw = c.subject || msg;
     const title = titleRaw.length > 48 ? titleRaw.substring(0, 48) + '…' : titleRaw;
     const status = (c.status || 'open').toLowerCase();
-    const statusClass = status === 'closed' || status === 'resolved' ? `status-${status}` : 'status-open';
-    const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+    const displayStatus = status === 'resolved' ? 'open' : status;
+    const statusClass = displayStatus === 'closed' ? 'status-closed' : 'status-open';
+    const statusLabel = displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1);
     const lastUpdated = formatHistoryDateTime(c.updatedAt || c.createdAt);
 
     const el = document.createElement('div');
@@ -453,8 +447,13 @@ function startNewConversation() {
   state.isConnected = false;
   state._historyCached = [];
   state._escalationShown = false;
+  if (state._streamFlushTimer) {
+    clearTimeout(state._streamFlushTimer as number);
+    state._streamFlushTimer = null;
+  }
   state._streamBubbleEl = null;
   state._streamText = '';
+  state._streamRenderedText = '';
   state._thoughtText = '';
   state._thoughtSteps = [];
 

@@ -1,16 +1,16 @@
 import { DocumentJob } from "../ingestion.types";
 import { streamFromText } from "../services/content-stream";
 import { processIngestion } from "../services/process-ingestion";
-import { setDocStatus } from "../../../shared/db/db";
+import { setDocStatus } from "../services/doc-status.service";
 
-/**
- * Plain-text ingestion pipeline:
- *   1. status → "indexing"
- *   2. Chunk the raw content string
- *   3. Embed chunks in batches
- *   4. Upsert into Qdrant (idempotent)
- *   5. status → "indexed"
- */
+
+
+
+
+
+
+
+
 export async function runTextIngestionPipeline(job: DocumentJob): Promise<void> {
   const {
     organizationId,

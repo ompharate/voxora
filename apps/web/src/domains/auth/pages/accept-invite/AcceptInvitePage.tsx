@@ -146,7 +146,7 @@ export function AcceptInvitePage() {
             <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center mb-4">
               <CheckCircle2 className="h-6 w-6 text-success" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Welcome to Voxora!</h2>
+            <h2 className="text-2xl font-bold mb-2">Welcome to InteraOne!</h2>
             <p className="text-muted-foreground mb-6">
               Your invitation has been accepted successfully. Redirecting to login...
             </p>
@@ -169,7 +169,7 @@ export function AcceptInvitePage() {
             <span className="text-white font-bold text-lg">V</span>
           </div>
           <CardTitle className="text-2xl font-bold">
-            Voxora Invitation
+            InteraOne Invitation
           </CardTitle>
           <CardDescription>
             You&apos;ve been invited to join {inviteDetails?.organization?.name || "an organization"}

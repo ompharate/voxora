@@ -1,4 +1,4 @@
-# Multi-stage build for Next.js
+# Multi-stage build for Vite
 FROM node:20-alpine AS builder
 
 RUN corepack enable pnpm
@@ -16,46 +16,36 @@ COPY . .
 
 # Set production environment
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build with placeholder values — replaced at container startup by entrypoint.sh
-ENV NEXT_PUBLIC_API_URL=__NEXT_PUBLIC_API_URL__
-ENV NEXT_PUBLIC_SOCKET_URL=__NEXT_PUBLIC_SOCKET_URL__
-ENV NEXT_PUBLIC_CDN_URL=__NEXT_PUBLIC_CDN_URL__
+ENV VITE_API_URL=__VITE_API_URL__
+ENV VITE_WIDGET_URL=__VITE_WIDGET_URL__
+ENV VITE_SOCKET_URL=__VITE_SOCKET_URL__
+ENV VITE_PUBLIC_ENV=__VITE_PUBLIC_ENV__
+ENV VITE_INTERAONE_MODE=__VITE_INTERAONE_MODE__
+ENV VITE_INTERAONE_EE_ENABLED=__VITE_INTERAONE_EE_ENABLED__
+ENV VITE_INTERAONE_EE_MODULE_PRESENT=__VITE_INTERAONE_EE_MODULE_PRESENT__
+ENV VITE_INTERAONE_LICENSE_KEY=__VITE_INTERAONE_LICENSE_KEY__
 
-# Build Next.js app
+# Build Vite app
 RUN npm run build
 
-# Production stage — standalone output is self-contained, no npm install needed
-FROM node:20-alpine
+# Production stage — static assets served by nginx
+FROM nginx:1.27-alpine
 
-WORKDIR /app
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
-
-# Copy built Next.js standalone bundle (includes pruned node_modules)
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Entrypoint: replaces __PLACEHOLDER__ strings with real env vars at startup
-COPY --chown=nextjs:nodejs entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
-
-USER nextjs
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Expose port
 EXPOSE 3000
 
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD wget --quiet --tries=1 --spider http://localhost:3000 || exit 1
 
-# Start Next.js server
-CMD ["./entrypoint.sh"]
+# Start nginx
+CMD ["/entrypoint.sh"]

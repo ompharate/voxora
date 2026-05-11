@@ -4,8 +4,9 @@
  */
 
 import { WidgetConfig, WidgetServerConfig, WidgetState } from './types';
+import { INTERAONE_LOGO_SVG } from './shared/assets';
 
-const DEFAULT_FLOATING_ICON_URL = 'https://i.postimg.cc/MGnnrRZg/Untitled-design-3-removebg-preview.png';
+const DEFAULT_FLOATING_ICON_URL = '';
 
 export class WidgetUI {
   private config: WidgetConfig;
@@ -13,10 +14,13 @@ export class WidgetUI {
   private button: HTMLElement | null = null;
   private iframe: HTMLIFrameElement | null = null;
   private badge: HTMLElement | null = null;
+  private dockContainer: HTMLElement | null = null;
   private outsideChipsContainer: HTMLElement | null = null;
   private onToggle?: (isOpen: boolean) => void;
   private customSize: { width: number; height: number } | null = null;
   private centered = false;
+  private hostPaddingRight: string | null = null;
+  private hostTransition: string | null = null;
 
   private get isFullscreen(): boolean {
     return this.config.fullscreen === true;
@@ -29,6 +33,14 @@ export class WidgetUI {
   constructor(config: WidgetConfig, state: WidgetState) {
     this.config = config;
     this.state = state;
+  }
+
+  private getLauncherLabel(): string {
+    return this.config.appearance?.launcherText?.trim() || 'Open chat';
+  }
+
+  private getLauncherTitle(): string {
+    return this.config.appearance?.launcherText?.trim() || this.config.displayName || 'Open chat';
   }
 
   /**
@@ -58,29 +70,118 @@ export class WidgetUI {
     this.config.suggestions = serverConfig.suggestions;
   }
 
+  private shouldUseCustomIcon(): boolean {
+    const iconUrl = this.config.logoUrl;
+    return !!iconUrl && !iconUrl.includes('chat-icon.png') && !iconUrl.includes('Untitled-design');
+  }
+
   /**
-   * Returns the button innerHTML for the idle (closed) state.
-   * Shows the brand logo if available, otherwise falls back to the chat SVG.
+   * Render the button content without interpolating user-controlled logo URLs
+   * into raw HTML. Malformed URLs can otherwise leak text like `"/>` beside the
+   * launcher when the browser repairs the broken markup.
    */
-  private buttonIdleContent(): string {
-    // Use configured logo first; otherwise fall back to the default brand icon URL.
-    const iconUrl = this.config.logoUrl || DEFAULT_FLOATING_ICON_URL;
-    if (iconUrl) {
-      return `<img
-        src="${iconUrl}"
-        data-default-icon="${DEFAULT_FLOATING_ICON_URL}"
-        alt="logo"
-        style="width:34px;height:34px;object-fit:contain;border-radius:6px;display:block;"
-        onerror="if(this.dataset.vxRetriedDefault!=='1'){this.dataset.vxRetriedDefault='1';var d=this.getAttribute('data-default-icon');if(d&&this.src!==d){this.src=d;return;}}this.replaceWith((function(){var s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('width','24');s.setAttribute('height','24');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('fill','none');s.setAttribute('stroke','currentColor');s.setAttribute('stroke-width','1.9');s.setAttribute('stroke-linecap','round');s.setAttribute('stroke-linejoin','round');var p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d','M12 3c-4.97 0-9 3.58-9 8 0 2.42 1.2 4.58 3.1 6.05V21l3.45-2.18c.78.24 1.6.36 2.45.36 4.97 0 9-3.58 9-8s-4.03-8-9-8z');var c1=document.createElementNS('http://www.w3.org/2000/svg','circle');c1.setAttribute('cx','9');c1.setAttribute('cy','11.5');c1.setAttribute('r','1');var c2=document.createElementNS('http://www.w3.org/2000/svg','circle');c2.setAttribute('cx','12');c2.setAttribute('cy','11.5');c2.setAttribute('r','1');var c3=document.createElementNS('http://www.w3.org/2000/svg','circle');c3.setAttribute('cx','15');c3.setAttribute('cy','11.5');c3.setAttribute('r','1');s.appendChild(p);s.appendChild(c1);s.appendChild(c2);s.appendChild(c3);return s;})())"
-      />`;
+  private renderButtonIdleContent(): void {
+    if (!this.button) return;
+
+    this.button.textContent = '';
+    const iconUrl = this.config.logoUrl;
+
+    if (this.shouldUseCustomIcon() && iconUrl) {
+      const img = document.createElement('img');
+      img.src = iconUrl;
+      img.alt = 'logo';
+      Object.assign(img.style, {
+        width: '34px',
+        height: '34px',
+        objectFit: 'contain',
+        borderRadius: '6px',
+        display: 'block',
+        pointerEvents: 'none',
+      });
+      img.addEventListener('error', () => {
+        img.remove();
+        if (this.button && !this.button.querySelector('svg')) {
+          this.button.insertAdjacentHTML('afterbegin', INTERAONE_LOGO_SVG);
+        }
+      });
+      this.button.appendChild(img);
+      return;
     }
 
-    return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 3c-4.97 0-9 3.58-9 8 0 2.42 1.2 4.58 3.1 6.05V21l3.45-2.18c.78.24 1.6.36 2.45.36 4.97 0 9-3.58 9-8s-4.03-8-9-8z"></path>
-      <circle cx="9" cy="11.5" r="1"></circle>
-      <circle cx="12" cy="11.5" r="1"></circle>
-      <circle cx="15" cy="11.5" r="1"></circle>
-    </svg>`;
+    this.button.innerHTML = INTERAONE_LOGO_SVG;
+  }
+
+  private setButtonClosedChrome(): void {
+    if (!this.button) return;
+    this.button.classList.remove('vx-open');
+    Object.assign(this.button.style, {
+      width: '60px',
+      height: '60px',
+      borderRadius: '50%',
+      padding: '0',
+    });
+  }
+
+  private setButtonOpenChrome(): void {
+    if (!this.button) return;
+    this.button.classList.add('vx-open');
+    Object.assign(this.button.style, {
+      width: '60px',
+      height: '60px',
+      borderRadius: '50%',
+      padding: '0',
+    });
+  }
+  private applyHostDockSpacing(width: number): void {
+    if (this.isFullscreen) return;
+    const body = document.body;
+    if (!body) return;
+
+    if (!this.state.isOpen) return;
+
+    const scrollbarWidth = this.getScrollbarWidth();
+    const effectiveWidth = this.isMobileSheet() ? 0 : width + scrollbarWidth;
+
+    if (this.hostPaddingRight === null) {
+      this.hostPaddingRight = body.style.paddingRight || '';
+      this.hostTransition = body.style.transition || '';
+    }
+
+    const baseTransition = this.hostTransition || '';
+    const paddingTransition = 'padding-right 0.24s ease-in-out';
+    body.style.transition = baseTransition
+      ? `${baseTransition}, ${paddingTransition}`
+      : paddingTransition;
+    body.style.boxSizing = 'border-box';
+    body.style.paddingRight = `${effectiveWidth}px`;
+
+    this.syncDockToScrollbar();
+    const updatedScrollbarWidth = this.getScrollbarWidth();
+    if (!this.isMobileSheet() && updatedScrollbarWidth !== scrollbarWidth) {
+      body.style.paddingRight = `${width + updatedScrollbarWidth}px`;
+      this.syncDockToScrollbar();
+    }
+  }
+
+  private restoreHostDockSpacing(): void {
+    const body = document.body;
+    if (!body || this.hostPaddingRight === null) return;
+    body.style.paddingRight = this.hostPaddingRight;
+    if (this.hostTransition !== null) {
+      body.style.transition = this.hostTransition;
+    }
+  }
+
+  private getScrollbarWidth(): number {
+    const doc = document.documentElement;
+    if (!doc) return 0;
+    return Math.max(0, window.innerWidth - doc.clientWidth);
+  }
+
+  private syncDockToScrollbar(): void {
+    if (!this.dockContainer || this.isFullscreen || this.isMobileSheet()) return;
+    const scrollbarWidth = this.getScrollbarWidth();
+    this.dockContainer.style.right = `${scrollbarWidth}px`;
   }
 
   /**
@@ -88,22 +189,20 @@ export class WidgetUI {
    */
   createButton(): HTMLElement {
     if (this.isFullscreen) {
-      throw new Error('[VoxoraWidget] createButton() should not be called in fullscreen mode');
+      throw new Error('[InteraOneWidget] createButton() should not be called in fullscreen mode');
     }
 
     this.button = document.createElement('div');
-    this.button.id = 'voxora-chat-button';
+    this.button.id = 'InteraOne-chat-button';
     this.button.setAttribute('role', 'button');
-    const launcherText = this.config.appearance?.launcherText?.trim();
-    this.button.setAttribute('aria-label', launcherText || 'Open chat');
-    this.button.setAttribute('title', launcherText || this.config.displayName || 'Open chat');
-    
-    const bgColor = this.config.primaryColor || this.config.backgroundColor || '#667eea';
+    this.button.setAttribute('aria-label', this.getLauncherLabel());
+    this.button.setAttribute('title', this.getLauncherTitle());
+
+    const bgColor = this.config.primaryColor || this.config.backgroundColor || '#845C6C';
     const buttonTextColor = this.config.appearance?.textColor || 'white';
-    // Derive shadow colour from the background for a cohesive look
-    const shadowColor = bgColor.startsWith('#') ? `${bgColor}66` : 'rgba(102,126,234,0.4)';
-    
-    this.button.innerHTML = this.buttonIdleContent();
+    const shadowColor = bgColor.startsWith('#') ? `${bgColor}66` : 'rgba(132,92,108,0.4)';
+
+    this.renderButtonIdleContent();
 
     Object.assign(this.button.style, {
       position: 'fixed',
@@ -126,6 +225,8 @@ export class WidgetUI {
       opacity: '0',
       border: 'none',
       outline: 'none',
+      overflow: 'hidden',
+      padding: '0',
       // Prevent text/element selection on double-click or drag over the button
       userSelect: 'none',
       WebkitUserSelect: 'none',
@@ -172,21 +273,20 @@ export class WidgetUI {
       fontWeight: 'bold',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '0 6px'
+      padding: '0 6px',
     });
-    
-    this.button.appendChild(this.badge);
 
+    this.button.appendChild(this.badge);
     document.body.appendChild(this.button);
 
     // Animate in
     requestAnimationFrame(() => {
       if (this.button) {
+        this.setButtonClosedChrome();
         this.button.style.transform = 'scale(1)';
         this.button.style.opacity = '1';
       }
     });
-
     this.renderOutsideChips();
     return this.button;
   }
@@ -203,7 +303,7 @@ export class WidgetUI {
     const accentColor = this.config.primaryColor || this.config.backgroundColor || '#10b981';
 
     this.outsideChipsContainer = document.createElement('div');
-    this.outsideChipsContainer.id = 'voxora-outside-chips';
+    this.outsideChipsContainer.id = 'InteraOne-outside-chips';
     Object.assign(this.outsideChipsContainer.style, {
       position: 'fixed',
       bottom: '100px',
@@ -300,10 +400,10 @@ export class WidgetUI {
    */
   createIframe(src: string): HTMLIFrameElement {
     this.iframe = document.createElement('iframe');
-    this.iframe.id = 'voxora-widget-iframe';
+    this.iframe.id = 'InteraOne-widget-iframe';
     this.iframe.src = src;
     this.iframe.allow = 'microphone; camera';
-    this.iframe.setAttribute('title', 'Voxora Chat Widget');
+    this.iframe.setAttribute('title', 'InteraOne Chat Widget');
     // Use sandbox for security - allow scripts, forms, popups, and same-origin (for localStorage)
     this.iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-same-origin');
 
@@ -333,28 +433,35 @@ export class WidgetUI {
         WebkitUserSelect: 'none',
       });
     } else {
-      const isLeft = this.config.position === 'bottom-left';
+      this.dockContainer = document.createElement('div');
+      this.dockContainer.id = 'InteraOne-widget-dock';
+      const scrollbarWidth = this.getScrollbarWidth();
+      Object.assign(this.dockContainer.style, {
+        position: 'fixed',
+        top: '0',
+        right: `${scrollbarWidth}px`,
+        bottom: '0',
+        width: `${this.getPanelWidth()}px`,
+        height: '100vh',
+        zIndex: '2147483645',
+        transform: 'translateX(100%)',
+        opacity: '0',
+        transition: 'transform 0.24s ease-in-out, opacity 0.24s ease',
+        pointerEvents: 'none',
+        borderLeft: '1px solid rgba(15, 23, 42, 0.14)',
+        background: 'transparent',
+      });
 
       Object.assign(this.iframe.style, {
-        position: 'fixed',
-        bottom: '100px',
-        right: isLeft ? 'auto' : '24px',
-        left: isLeft ? '24px' : 'auto',
-        width: '380px',
-        height: '700px',
-        maxWidth: 'calc(100vw - 48px)',
-        maxHeight: 'calc(100vh - 120px)',
+        position: 'relative',
+        width: '100%',
+        height: '100%',
         border: 'none',
-        borderRadius: '16px',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+        borderRadius: '0',
+        boxShadow: 'none',
         overflow: 'hidden',
-        zIndex: '2147483645', // One below button
-        background: 'white',
-        transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-        transform: 'scale(0.8) translateY(20px)',
-        opacity: '0',
-        transformOrigin: isLeft ? 'bottom left' : 'bottom right',
-        display: 'none',
+        background: 'transparent',
+        display: 'block',
         // Prevent the host page from getting a selection highlight when the
         // user double-clicks inside the iframe area.
         userSelect: 'none',
@@ -362,7 +469,12 @@ export class WidgetUI {
       });
     }
 
-    document.body.appendChild(this.iframe);
+    if (this.dockContainer) {
+      this.dockContainer.appendChild(this.iframe);
+      document.body.appendChild(this.dockContainer);
+    } else {
+      document.body.appendChild(this.iframe);
+    }
     this.setupResponsive();
 
     return this.iframe;
@@ -376,11 +488,12 @@ export class WidgetUI {
     if (!Number.isFinite(width) || !Number.isFinite(height)) return;
 
     this.customSize = {
-      width: Math.max(320, Math.round(width)),
+      width: Math.max(360, Math.round(width)),
       height: Math.max(420, Math.round(height)),
     };
     this.centered = centered;
     this.applyResponsiveLayout();
+    if (this.state.isOpen) this.applyHostDockSpacing(this.getPanelWidth());
   }
 
   /**
@@ -401,35 +514,31 @@ export class WidgetUI {
     if (!this.iframe) return;
 
     this.state.isOpen = true;
-    this.iframe.style.display = 'block';
+    if (this.dockContainer) this.dockContainer.style.pointerEvents = 'auto';
 
     if (this.button) {
-      // Update button to close icon
-      this.button.innerHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      `;
-      this.button.style.transform = 'scale(1) rotate(90deg)';
+      this.setButtonOpenChrome();
+      this.button.style.transform = 'scale(1)';
       this.button.setAttribute('aria-label', 'Close chat');
       this.button.setAttribute('title', 'Close chat');
+      this.button.style.display = 'none';
     }
 
     // Animate widget in
     requestAnimationFrame(() => {
-      if (this.iframe) {
-        if (this.isMobileSheet()) {
-          this.iframe.style.transform = 'translateY(0)';
-        } else if (!this.isFullscreen) {
-          this.iframe.style.transform = 'scale(1) translateY(0)';
-        }
+      if (this.isFullscreen && this.iframe) {
+        this.iframe.style.display = 'block';
         this.iframe.style.opacity = '1';
+        return;
+      }
+
+      if (this.dockContainer) {
+        this.dockContainer.style.transform = 'translateX(0)';
+        this.dockContainer.style.opacity = '1';
       }
     });
 
-    // Clear unread count
-    this.setUnreadCount(0);
+    this.applyHostDockSpacing(this.getPanelWidth());
 
     // Hide outside chips while widget is open
     if (this.outsideChipsContainer) this.outsideChipsContainer.style.display = 'none';
@@ -446,55 +555,31 @@ export class WidgetUI {
     this.state.isOpen = false;
 
     if (this.button) {
-      // Restore logo / chat icon
-      this.button.innerHTML = this.buttonIdleContent();
-      this.button.style.transform = 'scale(1) rotate(0deg)';
-      const launcherText = this.config.appearance?.launcherText?.trim();
-      this.button.setAttribute('aria-label', launcherText || 'Open chat');
-      this.button.setAttribute('title', launcherText || this.config.displayName || 'Open chat');
+      this.setButtonClosedChrome();
+      this.button.style.transform = 'scale(1)';
+      this.button.setAttribute('aria-label', this.getLauncherLabel());
+      this.button.setAttribute('title', this.getLauncherTitle());
+      this.button.style.display = 'flex';
     }
 
     // Animate widget out
-    if (this.isMobileSheet()) {
-      this.iframe.style.transform = 'translateY(110%)';
-    } else if (!this.isFullscreen) {
-      this.iframe.style.transform = 'scale(0.8) translateY(20px)';
+    if (this.isFullscreen) {
+      this.iframe.style.opacity = '0';
+      setTimeout(() => {
+        if (this.iframe) this.iframe.style.display = 'none';
+      }, 200);
+    } else if (this.dockContainer) {
+      this.dockContainer.style.transform = 'translateX(100%)';
+      this.dockContainer.style.opacity = '0';
+      this.dockContainer.style.pointerEvents = 'none';
     }
-    this.iframe.style.opacity = '0';
 
-    setTimeout(() => {
-      if (this.iframe) this.iframe.style.display = 'none';
-    }, 300);
+    this.restoreHostDockSpacing();
 
     // Restore outside chips
     if (this.outsideChipsContainer) this.outsideChipsContainer.style.display = 'flex';
 
     if (this.onToggle) this.onToggle(false);
-  }
-
-  /**
-   * Update unread count
-   */
-  setUnreadCount(count: number): void {
-    this.state.unreadCount = count;
-
-    if (!this.badge) return;
-
-    if (count > 0) {
-      this.badge.textContent = count > 99 ? '99+' : count.toString();
-      this.badge.style.display = 'flex';
-    } else {
-      this.badge.style.display = 'none';
-    }
-  }
-
-  /**
-   * Increment unread count
-   */
-  incrementUnread(): void {
-    if (!this.state.isOpen) {
-      this.setUnreadCount(this.state.unreadCount + 1);
-    }
   }
 
   /**
@@ -525,69 +610,45 @@ export class WidgetUI {
       return;
     }
 
-    const isLeft = this.config.position === 'bottom-left';
-
     if (this.isMobileSheet()) {
-      this.centered = false;
-      Object.assign(this.iframe.style, {
-        width: '100vw',
-        height: '90vh',
-        maxWidth: '100vw',
-        maxHeight: '90vh',
-        right: '0',
-        left: '0',
+      if (this.dockContainer) {
+        Object.assign(this.dockContainer.style, {
+          width: '100vw',
+          height: '100vh',
+          right: '0',
+          left: '0',
+          top: '0',
+          bottom: '0',
+          borderLeft: 'none',
+        });
+        this.dockContainer.style.transformOrigin = 'right center';
+        this.dockContainer.style.transform = this.state.isOpen ? 'translateX(0)' : 'translateX(100%)';
+      }
+      if (this.state.isOpen) this.applyHostDockSpacing(this.getPanelWidth());
+      return;
+    }
+
+    const panelWidth = this.getPanelWidth();
+    if (this.dockContainer) {
+      const scrollbarWidth = this.getScrollbarWidth();
+      Object.assign(this.dockContainer.style, {
+        width: `${panelWidth}px`,
+        height: '100vh',
+        right: `${scrollbarWidth}px`,
+        left: 'auto',
+        top: '0',
         bottom: '0',
-        top: 'auto',
-        borderRadius: '18px 18px 0 0',
-        boxShadow: '0 -16px 48px rgba(0, 0, 0, 0.28)',
-        transition: 'transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease',
+        borderLeft: '1px solid rgba(15, 23, 42, 0.14)',
       });
-      this.iframe.style.transformOrigin = 'bottom center';
-      this.iframe.style.transform = this.state.isOpen ? 'translateY(0)' : 'translateY(110%)';
-      return;
+      this.dockContainer.style.transformOrigin = 'right center';
+      this.dockContainer.style.transform = this.state.isOpen ? 'translateX(0)' : 'translateX(100%)';
     }
+    if (this.state.isOpen) this.applyHostDockSpacing(this.getPanelWidth());
+  }
 
-    if (this.customSize) {
-      const maxWidth = Math.max(320, window.innerWidth - 48);
-      const maxHeight = Math.max(420, window.innerHeight - 80);
-      const width = Math.min(this.customSize.width, maxWidth);
-      const height = Math.min(this.customSize.height, maxHeight);
-      const centeredLeft = `${Math.max(24, Math.round((window.innerWidth - width) / 2))}px`;
-      const centeredTop = `${Math.max(24, Math.round((window.innerHeight - height) / 2))}px`;
-
-      Object.assign(this.iframe.style, {
-        width: `${width}px`,
-        height: `${height}px`,
-        maxWidth: 'calc(100vw - 48px)',
-        maxHeight: 'calc(100vh - 80px)',
-        right: this.centered ? 'auto' : (isLeft ? 'auto' : '24px'),
-        left: this.centered ? centeredLeft : (isLeft ? '24px' : 'auto'),
-        top: this.centered ? centeredTop : 'auto',
-        bottom: this.centered ? 'auto' : '100px',
-        borderRadius: '16px',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-        transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-      });
-      this.iframe.style.transformOrigin = this.centered ? 'center center' : (isLeft ? 'bottom left' : 'bottom right');
-      this.iframe.style.transform = this.state.isOpen ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(20px)';
-      return;
-    }
-
-    Object.assign(this.iframe.style, {
-      width: '380px',
-      height: '700px',
-      maxWidth: 'calc(100vw - 48px)',
-      maxHeight: 'calc(100vh - 120px)',
-      right: isLeft ? 'auto' : '24px',
-      left: isLeft ? '24px' : 'auto',
-      top: 'auto',
-      bottom: '100px',
-      borderRadius: '16px',
-      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-      transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-    });
-    this.iframe.style.transformOrigin = isLeft ? 'bottom left' : 'bottom right';
-    this.iframe.style.transform = this.state.isOpen ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(20px)';
+  private getPanelWidth(): number {
+    const fallback = this.customSize?.width ?? 420;
+    return Math.min(480, Math.max(360, Math.round(fallback)));
   }
 
   /**
@@ -611,5 +672,7 @@ export class WidgetUI {
     if (this.button) this.button.remove();
     if (this.outsideChipsContainer) this.outsideChipsContainer.remove();
     if (this.iframe) this.iframe.remove();
+    if (this.dockContainer) this.dockContainer.remove();
+    this.restoreHostDockSpacing();
   }
 }

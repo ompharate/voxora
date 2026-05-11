@@ -7,7 +7,7 @@ import ResetPasswordPage from "../domains/auth/pages/reset-password/page";
 import AcceptInvitePage from "../domains/auth/pages/accept-invite/page";
 import { SelectOrgPage } from "@/domains/auth/pages/select-org/page";
 import { DashboardHomePage } from "@/domains/dashboard/pages/page";
-import { TeamsPage } from "@/domains/teams/pages/page";
+
 import { MembersPage } from "@/domains/member/pages/members-page";
 import { RolesPage } from "@/domains/member/pages/roles-page";
 import { ContactsPage } from "@/domains/contacts/pages/contacts-page";
@@ -27,6 +27,7 @@ import { BillingFailedPage } from "@/domains/settings/pages/billing-failed-page"
 import { WhiteLabelPage } from "@/domains/settings/pages/white-label-page";
 import { CreateOrganizationPage } from "@/domains/organization/pages/create-organization-page";
 import { DashboardLayout } from "@/shared/layouts/dashboard-layout";
+import { ProtectedRoute } from "@/domains/auth/components/protected-route";
 import { EeFeatureGate } from "@/shared/components/ee-feature-gate";
 import QRCodeGeneratorPage from "@/domains/widget/pages/qr-generator-page";
 import QRScannerLandingPage from "@/domains/widget/pages/qr-scanner-landing-page";
@@ -41,8 +42,12 @@ const router = createBrowserRouter([
         element: <LoginPage />,
     },
     {
-        path: "/auth/setup",
+        path: "/auth/signup",
         element: <SetupPage />,
+    },
+    {
+        path: "/auth/setup",
+        element: <Navigate to="/auth/signup" replace />,
     },
     {
         path: "/auth/password-recovery",
@@ -67,97 +72,110 @@ const router = createBrowserRouter([
     {
         path: "/dashboard",
         element: (
-            <DashboardLayout>
-                <DashboardHomePage />
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="agent">
+                <DashboardLayout>
+                    <DashboardHomePage />
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
-    {
-        path: "/dashboard/teams",
-        element: (
-            <DashboardLayout>
-                <TeamsPage />
-            </DashboardLayout>
-        ),
-    },
+
     {
         path: "/dashboard/conversations/inbox",
         element: (
-            <DashboardLayout>
-                <ConversationLayout>
-                    <ConversationsInboxPage />
-                </ConversationLayout>
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="agent">
+                <DashboardLayout>
+                    <ConversationLayout>
+                        <ConversationsInboxPage />
+                    </ConversationLayout>
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: "/dashboard/conversations/inbox/chat/:conversationId",
         element: (
-            <DashboardLayout>
-                <ConversationLayout>
-                    <ConversationChatPage />
-                </ConversationLayout>
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="agent">
+                <DashboardLayout>
+                    <ConversationLayout>
+                        <ConversationChatPage />
+                    </ConversationLayout>
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: "/dashboard/agents",
         element: (
-            <DashboardLayout>
-                <AgentsPage />
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="admin">
+                <DashboardLayout>
+                    <AgentsPage />
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: "/dashboard/members",
         element: (
-            <DashboardLayout>
-                <MembersPage />
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="admin">
+                <DashboardLayout>
+                    <MembersPage />
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: "/dashboard/members/roles",
         element: (
-            <DashboardLayout>
-                <RolesPage />
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="admin">
+                <DashboardLayout>
+                    <RolesPage />
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: "/dashboard/contacts/all-contacts",
         element: (
-            <DashboardLayout>
-                <EeFeatureGate feature="contacts">
-                    <ContactsPage />
-                </EeFeatureGate>
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="agent">
+                <DashboardLayout>
+                    <EeFeatureGate feature="contacts">
+                        <ContactsPage />
+                    </EeFeatureGate>
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: "/dashboard/contacts/segments",
         element: (
-            <DashboardLayout>
-                <EeFeatureGate feature="contacts">
-                    <ContactSegmentsPage />
-                </EeFeatureGate>
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="agent">
+                <DashboardLayout>
+                    <EeFeatureGate feature="contacts">
+                        <ContactSegmentsPage />
+                    </EeFeatureGate>
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: "/dashboard/widget",
         element: (
-            <DashboardLayout>
-                <WidgetPage />
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="admin">
+                <DashboardLayout>
+                    <WidgetPage />
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: "/dashboard/widget/qr",
         element: (
-            <DashboardLayout>
-                <QRCodeGeneratorPage />
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="founder">
+                <DashboardLayout>
+                    <QRCodeGeneratorPage />
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
@@ -175,17 +193,21 @@ const router = createBrowserRouter([
     {
         path: "/dashboard/knowledge/static",
         element: (
-            <DashboardLayout>
-                <KnowledgeStaticPage />
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="admin">
+                <DashboardLayout>
+                    <KnowledgeStaticPage />
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: "/dashboard/knowledge/realtime",
         element: (
-            <DashboardLayout>
-                <KnowledgeRealtimePage />
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="admin">
+                <DashboardLayout>
+                    <KnowledgeRealtimePage />
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
@@ -199,17 +221,21 @@ const router = createBrowserRouter([
     {
         path: "/dashboard/settings/general",
         element: (
-            <DashboardLayout>
-                <GeneralSettingsPage />
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="founder">
+                <DashboardLayout>
+                    <GeneralSettingsPage />
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: "/dashboard/settings/billing",
         element: (
-            <DashboardLayout>
-                <BillingPage />
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="founder">
+                <DashboardLayout>
+                    <BillingPage />
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
@@ -231,19 +257,23 @@ const router = createBrowserRouter([
     {
         path: "/dashboard/settings/white-label",
         element: (
-            <DashboardLayout>
-                <EeFeatureGate feature="white-label">
-                    <WhiteLabelPage />
-                </EeFeatureGate>
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="founder">
+                <DashboardLayout>
+                    <EeFeatureGate feature="white-label">
+                        <WhiteLabelPage />
+                    </EeFeatureGate>
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: "/dashboard/settings/danger-zone",
         element: (
-            <DashboardLayout>
-                <DangerZonePage />
-            </DashboardLayout>
+            <ProtectedRoute requiredRole="founder">
+                <DashboardLayout>
+                    <DangerZonePage />
+                </DashboardLayout>
+            </ProtectedRoute>
         ),
     },
     {

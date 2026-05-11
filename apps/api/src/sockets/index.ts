@@ -1,7 +1,6 @@
 import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { redisClient, redisPublisher, redisSubscriber } from "@shared/config/redis";
-import { verifyToken } from "@shared/utils/auth";
 import { User, Membership } from "@shared/models";
 import jwt from "jsonwebtoken";
 import logger from "@shared/utils/logger";
@@ -156,14 +155,6 @@ export class SocketManager {
     }
   }
 
-  public getUserSocket(userId: string): string | undefined {
-    return this.connectedUsers.get(userId)?.socketId;
-  }
-
-  public getConnectedUsers(): Map<string, { socketId: string; orgId: string }> {
-    return this.connectedUsers;
-  }
-
   public getIO(): Server {
     return this.io;
   }
@@ -174,8 +165,6 @@ export class SocketManager {
    * Emit to all sockets in a specific org-scoped conversation room.
    */
   public emitToConversation(conversationId: string, event: string, data: any): void {
-    // Try to resolve orgId from the connected user map — fall back to unscoped key for backward compat
-    this.io.to(`org:*:conv:${conversationId}`).emit(event, data);
     // Also emit to legacy un-namespaced room (during transition)
     this.io.to(`conversation:${conversationId}`).emit(event, data);
   }

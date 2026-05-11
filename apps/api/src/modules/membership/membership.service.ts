@@ -1,4 +1,4 @@
-import { Membership, User, MembershipRole, IMembership } from "@shared/models";
+import { Membership, User, MembershipRole, IMembership, Organization } from "@shared/models";
 import { Types } from "mongoose";
 import { enqueueInviteEmail } from "@shared/queues/email.queue";
 import crypto from "crypto";
@@ -18,7 +18,6 @@ export class MembershipService {
             user: m.userId,
             role: m.role,
             inviteStatus: m.inviteStatus,
-            teams: m.teams,
             invitedAt: m.invitedAt,
             activatedAt: m.activatedAt,
         }));
@@ -36,7 +35,6 @@ export class MembershipService {
             email: string;
             name: string;
             role: MembershipRole;
-            teamIds?: string[];
             password?: string;
         },
     ) {
@@ -76,7 +74,6 @@ export class MembershipService {
             invitedBy: new Types.ObjectId(invitedByUserId),
             invitedAt: new Date(),
             inviteExpiresAt,
-            teams: (data.teamIds ?? []).map((id) => new Types.ObjectId(id)),
             permissions: this.defaultPermissionsForRole(data.role),
         });
 
@@ -86,13 +83,12 @@ export class MembershipService {
         });
 
         // Enqueue invite email — fires and forgets; worker handles delivery
+        const org = await Organization.findById(organizationId).select("name").lean();
         const emailSent = await enqueueInviteEmail(
-          data.email,
-          "Your Organization",
-          data.role,
-          inviteToken,
-          (data.teamIds ?? []).join(", "),
-                    organizationId,
+            data.email,
+            org?.name || "Your Organization",
+            data.role,
+            inviteToken,
         );
 
         return { membership, inviteToken, emailSent };
@@ -188,13 +184,12 @@ export class MembershipService {
         await user.save();
 
         // Enqueue invite email — fires and forgets; worker handles delivery
+        const org = await Organization.findById(organizationId).select("name").lean();
         const emailSent = await enqueueInviteEmail(
           user.email,
-          "Your Organization",
+          org?.name || "Your Organization",
           membership.role,
           inviteToken,
-          (membership.teams ?? []).join(", "),
-                    organizationId,
         );
 
         return { success: true, inviteToken, emailSent };
@@ -305,10 +300,10 @@ export class MembershipService {
 
     private static defaultPermissionsForRole(role: MembershipRole): string[] {
         if (role === "owner") {
-            return ["manage_teams", "manage_agents", "view_analytics", "manage_settings", "manage_members"];
+            return ["manage_agents", "view_analytics", "manage_settings", "manage_members"];
         }
         if (role === "admin") {
-            return ["manage_teams", "manage_agents", "view_analytics", "manage_members"];
+            return ["manage_agents", "view_analytics", "manage_members"];
         }
         return [];
     }

@@ -8,8 +8,6 @@ export interface AIJobData {
   messageId: string;
   /** Display name of the company whose widget initiated the conversation */
   companyName?: string;
-  /** teamId for the conversation — used by the AI context builder */
-  teamId?: string;
   /** Whether the widget allows escalation to a human agent */
   fallbackToAgent?: boolean;
   /** Which visitor info fields the AI should collect during the conversation */
@@ -42,6 +40,14 @@ export interface IngestionJobData {
   syncFrequency?: string;
 }
 
+export interface AnalyticsJobData {
+  event: string;
+  organizationId: string;
+  category: "ai" | "agent" | "system";
+  metadata?: Record<string, any>;
+}
+
+
 const connection: ConnectionOptions = {
   host: config.redis.host,
   port: config.redis.port,
@@ -62,5 +68,10 @@ export const aiQueue = new Queue<AIJobData, void, string>("ai-processing", {
 
 export const ingestionQueue = new Queue<IngestionJobData, void, string>(
   "document-ingestion",
+  { connection, defaultJobOptions },
+);
+
+export const analyticsQueue = new Queue<AnalyticsJobData, void, string>(
+  "platform-analytics",
   { connection, defaultJobOptions },
 );

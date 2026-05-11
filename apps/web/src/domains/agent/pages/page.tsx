@@ -3,7 +3,7 @@ import { User } from "lucide-react";
 import { AgentDetailModal } from "../components/agent-detail-modal";
 import { FilterableAgentTable } from "../components/filterable-agent-table";
 import { useAgents, useResendInvite } from "../hooks";
-import { useTeams } from "@/domains/teams/hooks";
+
 import { Loader } from "@/shared/ui/loader";
 import type { Agent } from "../types/types";
 
@@ -13,10 +13,9 @@ export function AgentsPage() {
 
   // React Query hooks
   const { data: agents = [], isLoading: agentsLoading } = useAgents();
-  const { data: teams = [], isLoading: teamsLoading } = useTeams();
   const resendInviteMutation = useResendInvite();
 
-  const isLoading = agentsLoading || teamsLoading;
+  const isLoading = agentsLoading;
 
   const handleResendInvite = (agentId: string) => {
     resendInviteMutation.mutate(agentId);
@@ -53,7 +52,6 @@ export function AgentsPage() {
       {agents.length > 0 ? (
         <FilterableAgentTable
           agents={agents}
-          teams={teams}
           onViewDetails={(agent) => {
             setSelectedAgent(agent);
             setShowDetailModal(true);

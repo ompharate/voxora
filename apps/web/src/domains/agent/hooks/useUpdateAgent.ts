@@ -40,9 +40,6 @@ export const useUpdateAgent = () => {
             ? {
                 ...agent,
                 user: data.name ? { ...agent.user, name: data.name } : agent.user,
-                teams: data.teamIds
-                  ? ([] as { _id: string; name: string; color: string }[]) // Will be populated by real response
-                  : agent.teams,
               }
             : agent
         );

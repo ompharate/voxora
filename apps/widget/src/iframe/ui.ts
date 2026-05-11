@@ -1,9 +1,15 @@
 import { parseMarkdown, extractThoughtSteps } from './utils/markdown';
-import { state, PROTO_VERSION, DEFAULT_WIDGET_ICON_URL } from './config';
+import { state, DEFAULT_WIDGET_ICON_URL } from './config';
+import { INTERAONE_LOGO_SVG } from '../shared/assets';
+export { INTERAONE_LOGO_SVG };
 
 // Pre-query safe DOM elements (since Vite injects script type=module at end of body)
 export const elements = {
+  appRoot: document.getElementById("app"),
   welcomeScreen: document.getElementById("welcomeScreen"),
+  greetingTitle: document.getElementById("vx-greeting"),
+  greetingSubtext: document.getElementById("vx-subtext"),
+  brandAvatar: document.getElementById("vx-avatar"),
   suggestionsContainer: document.getElementById("suggestions"),
   messagesContainer: document.getElementById("messagesContainer"),
   messageInput: document.getElementById("messageInput") as HTMLTextAreaElement,
@@ -16,18 +22,47 @@ export const elements = {
   historySearch: document.getElementById("historySearch") as HTMLInputElement | null,
   maximizeBtn: document.getElementById("vx-maximize"),
   minimizeBtn: document.getElementById("vx-minimize"),
-  attachBtn: document.getElementById('attachBtn') as HTMLButtonElement,
-  fileInput: document.getElementById('fileInput') as HTMLInputElement,
+  newChatBtn: document.getElementById('newChatBtn') as HTMLButtonElement | null,
+  tabChat: document.getElementById('tabChat') as HTMLButtonElement | null,
+  tabHistory: document.getElementById('tabHistory') as HTMLButtonElement | null,
 };
 
 let _typingDotsEl: HTMLElement | null = null;
 let _agentTypingEl: HTMLElement | null = null;
+let _openSkeletonTimer: number | null = null;
 
-export function showTypingDots() {
+function getThinkingStatusText(context?: string) {
+  const cleanContext = (context || '').replace(/\s+/g, ' ').trim();
+  if (!cleanContext) return 'Taking a look';
+  return `Taking a look at "${cleanContext}"`;
+}
+
+function getTypingOrbitMarkup(statusText = 'Taking a look') {
+  return `
+    <div class="typing-loader" aria-label="Assistant is processing">
+      <div class="interaone-anim">
+        <svg class="interaone-sparkle" viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id="typingSparkleGradient" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#60a5fa"></stop>
+              <stop offset="0.48" stop-color="#a78bfa"></stop>
+              <stop offset="1" stop-color="#f472b6"></stop>
+            </linearGradient>
+          </defs>
+          <path d="M12 2.8l1.78 5.42L19.2 10l-5.42 1.78L12 17.2l-1.78-5.42L4.8 10l5.42-1.78L12 2.8Z" fill="url(#typingSparkleGradient)"></path>
+          <path d="M18.4 14.3l.74 2.05 2.06.75-2.06.74-.74 2.06-.75-2.06-2.05-.74 2.05-.75.75-2.05Z" fill="url(#typingSparkleGradient)" opacity="0.8"></path>
+        </svg>
+      </div>
+      <span class="typing-loader-label">${escapeHtml(statusText)}</span>
+    </div>
+  `;
+}
+
+export function showTypingDots(context?: string) {
   if (_typingDotsEl) return; 
   const wrapper = document.createElement('div');
   wrapper.className = 'message agent';
-  wrapper.innerHTML = '<div class="message-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+  wrapper.innerHTML = `<div class="message-bubble typing-bubble">${getTypingOrbitMarkup(getThinkingStatusText(context))}</div>`;
   _typingDotsEl = wrapper;
   elements.messagesContainer?.appendChild(wrapper);
   scrollToBottom();
@@ -44,7 +79,7 @@ export function showTyping() {
   if (_agentTypingEl) return;
   const wrapper = document.createElement('div');
   wrapper.className = 'message agent';
-  wrapper.innerHTML = '<div class="message-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+  wrapper.innerHTML = `<div class="message-bubble typing-bubble">${getTypingOrbitMarkup('Support is replying')}</div>`;
   _agentTypingEl = wrapper;
   elements.messagesContainer?.appendChild(wrapper);
   scrollToBottom();
@@ -55,6 +90,17 @@ export function hideTyping() {
     _agentTypingEl.remove();
     _agentTypingEl = null;
   }
+}
+
+export function showOpenSkeleton(durationMs = 1000) {
+  const root = elements.appRoot as HTMLElement | null;
+  if (!root) return;
+  root.classList.add('is-skeleton');
+  if (_openSkeletonTimer) window.clearTimeout(_openSkeletonTimer);
+  _openSkeletonTimer = window.setTimeout(() => {
+    root.classList.remove('is-skeleton');
+    _openSkeletonTimer = null;
+  }, Math.max(200, durationMs));
 }
 
 export function showAgentConnectedCard(name: string) {
@@ -125,45 +171,32 @@ export function addSystemNotice(text: string) {
   scrollToBottom();
 }
 
-function getFileIcon(mimeType: string) {
-  if (!mimeType) return '📄';
-  if (mimeType.startsWith('image/')) return '🖼️';
-  if (mimeType === 'application/pdf') return '📕';
-  if (mimeType.includes('word')) return '📝';
-  if (mimeType === 'text/plain') return '📃';
-  return '📎';
-}
 
-function formatFileSize(bytes: number) {
-  if (!bytes) return '';
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
 
 export function escapeHtml(str: string) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function renderFileBubble(content: string, bubbleType: string) {
-  try {
-    const f = JSON.parse(content);
-    const fileUrl = f.downloadUrl || (f.fileKey ? 'YOUR_API_BASE/api/v1/storage/file?key=' + encodeURIComponent(f.fileKey) : null);
-    if (f.mimeType && f.mimeType.startsWith('image/') && fileUrl) {
-      return '<img class="img-preview-msg" src="' + fileUrl + '" alt="' + escapeHtml(f.fileName || 'image') + '" onclick="window.open(this.src,\'_blank\')"><div class="message-time" style="margin-top:4px">' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</div>';
-    }
-    const link = fileUrl ? '<a class="file-bubble" href="' + fileUrl + '" target="_blank" rel="noopener">' : '<div class="file-bubble">';
-    const linkClose = fileUrl ? '</a>' : '</div>';
-    return link +
-      '<div class="file-bubble-icon">' + getFileIcon(f.mimeType) + '</div>' +
-      '<div class="file-bubble-info">' +
-      '<span class="file-bubble-name">' + escapeHtml(f.fileName || 'File') + '</span>' +
-      '<span class="file-bubble-meta">' + (fileUrl ? 'Download · ' : 'Uploading… · ') + formatFileSize(f.fileSize) + '</span>' +
-      '</div>' + linkClose +
-      '<div class="message-time" style="margin-top:6px">' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</div>';
-  } catch (e) {
-    return escapeHtml(content);
-  }
+function getAssistantIconUrl() {
+  const cfg = state._uiConfig || {};
+  const appearance = cfg.appearance || {};
+  return appearance.logoUrl || cfg.logoUrl || DEFAULT_WIDGET_ICON_URL;
+}
+
+export function renderAgentResponseIcon() {
+  const cfg = state._uiConfig || {};
+  const appearance = cfg.appearance || {};
+  const logoUrl = appearance.logoUrl || cfg.logoUrl;
+
+  return `
+    <div class="agent-response-icon" aria-hidden="true">
+      ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="" onerror="this.parentElement.innerHTML='${INTERAONE_LOGO_SVG.replace(/'/g, "\\'")}'" />` : INTERAONE_LOGO_SVG}
+    </div>
+  `;
+}
+
+function renderFileBubble(content: string, _bubbleType: string) {
+  return escapeHtml(content);
 }
 
 export function addMessage(text: string, type: 'user' | 'agent', senderName: string, msgType: string = 'text') {
@@ -183,14 +216,9 @@ export function addMessage(text: string, type: 'user' | 'agent', senderName: str
     bodyHtml = escapeHtml(text) + '<div class="message-time">' + time + '</div>';
   }
 
-  messageDiv.innerHTML = '<div class="message-bubble">' + bodyHtml + '</div>';
+  messageDiv.innerHTML = (type === 'agent' ? renderAgentResponseIcon() : '') + '<div class="message-bubble">' + bodyHtml + '</div>';
   elements.messagesContainer.appendChild(messageDiv);
   scrollToBottom();
-
-  if (type === "agent" && window.parent) {
-    state.unreadCount++;
-    window.parent.postMessage({ type: 'UNREAD_COUNT', version: PROTO_VERSION, payload: { count: state.unreadCount } }, state.parentOrigin || '*');
-  }
 }
 
 export function typeMessage(text: string) {
@@ -201,48 +229,12 @@ export function typeMessage(text: string) {
   messageDiv.className = 'message agent';
   const bubble = document.createElement('div');
   bubble.className = 'message-bubble';
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  bubble.innerHTML = '<div class="md">' + parseMarkdown(text) + '</div><div class="message-time">' + time + '</div>';
+  messageDiv.innerHTML = renderAgentResponseIcon();
   messageDiv.appendChild(bubble);
   elements.messagesContainer.appendChild(messageDiv);
   scrollToBottom();
-
-  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const words = text.split(' ');
-  let wordIndex = 0;
-  let accumulated = '';
-  let contentEl: HTMLDivElement | null = null;
-
-  function typeNextWord() {
-    if (wordIndex === 0) {
-      contentEl = document.createElement('div');
-      contentEl.className = 'md typing-cursor';
-      bubble.innerHTML = '';
-      bubble.appendChild(contentEl);
-      const timePlaceholder = document.createElement('div');
-      timePlaceholder.className = 'message-time';
-      timePlaceholder.style.visibility = 'hidden';
-      timePlaceholder.textContent = time;
-      bubble.appendChild(timePlaceholder);
-    }
-
-    if (wordIndex < words.length && contentEl) {
-      accumulated += (wordIndex === 0 ? '' : ' ') + words[wordIndex];
-      contentEl.textContent = accumulated;
-      wordIndex++;
-      scrollToBottom();
-      setTimeout(typeNextWord, 28);
-    } else if (contentEl) {
-      contentEl.classList.remove('typing-cursor');
-      contentEl.innerHTML = parseMarkdown(text);
-      const timeEl = bubble.querySelector('.message-time') as HTMLDivElement;
-      if (timeEl) { timeEl.style.visibility = ''; timeEl.textContent = time; }
-      scrollToBottom();
-      if (window.parent) {
-        state.unreadCount++;
-        window.parent.postMessage({ type: 'UNREAD_COUNT', version: PROTO_VERSION, payload: { count: state.unreadCount } }, state.parentOrigin || '*');
-      }
-    }
-  }
-  typeNextWord();
 }
 
 export function renderThoughtSteps(stepsEl: Element, steps: string[], thinkingIndex: number) {

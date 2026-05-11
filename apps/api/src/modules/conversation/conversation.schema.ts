@@ -16,10 +16,9 @@ export const conversationSchema = {
     .options({ stripUnknown: true }),
 
   route: Joi.object({
-    teamId: Joi.string(),
-    agentId: Joi.string(),
+    agentId: Joi.string().required(),
     reason: Joi.string().max(500).allow(""),
-  }).or("teamId", "agentId"),
+  }),
 
   filters: Joi.object({
     page: Joi.number().integer().min(1).default(1),

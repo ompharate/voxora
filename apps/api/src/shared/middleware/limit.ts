@@ -3,7 +3,6 @@ import { AuthenticatedRequest } from "./auth";
 import { resolveOrganizationPlan, getPlanLimits } from "@shared/ee";
 import {
   Membership,
-  Team,
   Contact,
   Knowledge,
   UsageRecord,
@@ -11,7 +10,7 @@ import {
 } from "@shared/models";
 import logger from "@shared/utils/logger";
 
-export type LimitKey = "messages" | "teams" | "humanAgents" | "contacts" | "knowledgeItems";
+export type LimitKey = "messages" | "humanAgents" | "contacts" | "knowledgeItems";
 
 // ── Current period helpers ────────────────────────────────────────────────────
 
@@ -42,8 +41,6 @@ async function resolveCurrentCount(
       return record?.messagesUsed ?? 0;
     }
 
-    case "teams":
-      return Team.countDocuments({ organizationId });
 
     case "humanAgents":
       return Membership.countDocuments({
@@ -71,7 +68,7 @@ async function resolveCurrentCount(
  * frontend can use to show an in-context upgrade prompt.
  *
  * @example
- *   router.post("/", requireWithinLimit("teams"), TeamsController.createTeam);
+ *   router.post("/agents", requireWithinLimit("humanAgents"), AdminController.inviteAgent);
  */
 export const requireWithinLimit = (limitKey: LimitKey) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -178,9 +175,8 @@ export async function getOrganizationUsage(organizationId: string): Promise<OrgU
   const limits = getPlanLimits(plan);
   const period = currentPeriod();
 
-  const [messages, teams, humanAgents, contacts, knowledgeItems] = await Promise.all([
+  const [messages, humanAgents, contacts, knowledgeItems] = await Promise.all([
     resolveCurrentCount("messages", organizationId),
-    resolveCurrentCount("teams", organizationId),
     resolveCurrentCount("humanAgents", organizationId),
     resolveCurrentCount("contacts", organizationId),
     resolveCurrentCount("knowledgeItems", organizationId),
@@ -197,7 +193,6 @@ export async function getOrganizationUsage(organizationId: string): Promise<OrgU
     resetsAt: nextPeriodStart().toISOString(),
     usage: {
       messages:      toStat(messages,      limits.messages),
-      teams:         toStat(teams,         limits.teams),
       humanAgents:   toStat(humanAgents,   limits.humanAgents),
       contacts:      toStat(contacts,      limits.contacts),
       knowledgeItems: toStat(knowledgeItems, limits.knowledgeItems ?? null),

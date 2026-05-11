@@ -1,22 +1,28 @@
 import { useMemo } from "react";
-import { Link2, Download, Smartphone, Building2 } from "lucide-react";
+import { Download, Smartphone, Building2 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { authApi } from "@/domains/auth/api/auth.api";
 import { useWidget } from "@/domains/widget/hooks";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Loader } from "@/shared/ui/loader";
+import { INTERAONE_LOGO_BASE64 } from "@/shared/assets/interaone-logo-base64";
 
-const QR_CANVAS_ID = "voxora-qr-code-canvas";
+const QR_CANVAS_ID = "InteraOne-qr-code-canvas";
 
 export default function QRCodeGeneratorPage() {
   const { data: widget, isLoading } = useWidget();
   const orgRole = authApi.getOrgRole();
 
   const publicKey = widget?._id;
-  const companyLogoUrl = widget?.appearance?.logoUrl || widget?.logoUrl || "/logo.png";
+  let companyLogoUrl = widget?.appearance?.logoUrl || widget?.logoUrl || INTERAONE_LOGO_BASE64;
+
+  // Force fallback if it's the old generic logo
+  if (companyLogoUrl.includes('logo.png') || companyLogoUrl.includes('chat-icon.png')) {
+    companyLogoUrl = INTERAONE_LOGO_BASE64;
+  }
   const companyName = widget?.displayName || "Your Company";
-  const brandLabel = `${companyName} AI`;
+  const brandLabel = `${companyName}`;
 
   const destinationUrl = useMemo(() => {
     if (!publicKey) return "";
@@ -64,14 +70,11 @@ export default function QRCodeGeneratorPage() {
     ctx.drawImage(canvas, qrX, qrY, qrSize, qrSize);
     ctx.restore();
 
-    ctx.fillStyle = "#6b7280";
-    ctx.font = '500 14px "Geist Variable", Arial, sans-serif';
-    ctx.fillText(destinationUrl, exportWidth / 2, qrY + qrSize + footerHeight / 2);
 
     const dataUrl = exportCanvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = dataUrl;
-    link.download = `voxora-chat-qr-${publicKey}.png`;
+    link.download = `InteraOne-chat-qr-${publicKey}.png`;
     link.click();
   };
 
@@ -123,7 +126,7 @@ export default function QRCodeGeneratorPage() {
                 Standalone Chat QR
               </CardTitle>
               <CardDescription>
-                Scanning this code opens your full-screen mobile landing page at <code>/c/:publicKey</code>.
+                High-quality QR code for your chat widget.
               </CardDescription>
             </CardHeader>
 
@@ -136,21 +139,12 @@ export default function QRCodeGeneratorPage() {
                 <p className="text-sm text-muted-foreground">
                   Branded export includes rounded QR corners, centered logo, and your company AI label.
                 </p>
-                <div className="text-xs text-muted-foreground">
-                  Public Key: <span className="font-mono">{publicKey}</span>
-                </div>
               </div>
 
               <div className="flex flex-wrap gap-3">
                 <Button onClick={handleDownload} className="cursor-pointer">
                   <Download className="mr-2 h-4 w-4" />
                   Download PNG
-                </Button>
-                <Button asChild variant="outline" className="cursor-pointer">
-                  <a href={destinationUrl} target="_blank" rel="noreferrer">
-                    <Link2 className="mr-2 h-4 w-4" />
-                    Open Landing Page
-                  </a>
                 </Button>
               </div>
             </CardContent>
@@ -180,7 +174,6 @@ export default function QRCodeGeneratorPage() {
                   />
                 </div>
               </div>
-              <div className="text-center text-xs text-muted-foreground break-all">{destinationUrl}</div>
             </div>
           </div>
         </div>

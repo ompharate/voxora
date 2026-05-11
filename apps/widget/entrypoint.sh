@@ -3,8 +3,8 @@
 # This makes one generic Docker image work with any deployment.
 #
 # Required environment variables:
-#   - API_URL_PRODUCTION: Backend API URL (e.g., https://api.voxora.cloud)
-#   - CDN_URL_PRODUCTION: CDN base URL (e.g., https://cdn.voxora.cloud)
+#   - API_URL_PRODUCTION: Backend API URL (e.g., https://api.InteraOne.cloud)
+#   - CDN_URL_PRODUCTION: CDN base URL (e.g., https://cdn.InteraOne.cloud)
 
 set -e
 

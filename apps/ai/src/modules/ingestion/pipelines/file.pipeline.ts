@@ -1,15 +1,15 @@
 import { DocumentJob } from "../ingestion.types";
 import { loadDocumentStream } from "../sources/loader";
 import { processIngestion } from "../services/process-ingestion";
-import { setDocStatus } from "../../../shared/db/db";
+import { setDocStatus } from "../services/doc-status.service";
 
-/**
- * Full document ingestion pipeline:
- *   1. Load raw text from MinIO
- *   2. Chunk into overlapping segments
- *   3. Generate an embedding vector for each chunk
- *   4. Upsert all vectors into Qdrant (deletes old vectors first)
- */
+
+
+
+
+
+
+
 export async function runIngestionPipeline(job: DocumentJob): Promise<void> {
   const { organizationId, documentId, fileKey, mimeType, fileName, metadata = {} } = job;
 

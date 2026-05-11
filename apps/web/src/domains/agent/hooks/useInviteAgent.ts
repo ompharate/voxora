@@ -43,7 +43,6 @@ export const useInviteAgent = () => {
             email: newAgent.email,
           },
           role: "agent",
-          teams: [],
           status: "offline",
           lastSeen: new Date(),
           inviteStatus: "pending",

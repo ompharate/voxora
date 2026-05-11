@@ -18,11 +18,11 @@ export function getCookie(name: string) {
 
 export function getOrCreateSessionId() {
   try {
-    let sessionId = getCookie('voxora_session_id');
+    let sessionId = getCookie('InteraOne_session_id');
     if (sessionId) return sessionId;
 
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    setCookie('voxora_session_id', sessionId, 365);
+    setCookie('InteraOne_session_id', sessionId, 365);
     return sessionId;
   } catch (error) {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -30,7 +30,7 @@ export function getOrCreateSessionId() {
 }
 
 export function getSessionKey(pubKey: string) {
-  return 'voxora_sess_' + pubKey;
+  return 'InteraOne_sess_' + pubKey;
 }
 
 export function loadStoredSession(pubKey: string) {
@@ -57,5 +57,5 @@ export function persistSession(pubKey: string, token: string, expiresAt: number,
 }
 
 export function clearStoredSession(pubKey: string) {
-  try { localStorage.removeItem(getSessionKey(pubKey)); } catch {}
+  try { localStorage.removeItem(getSessionKey(pubKey)); } catch { }
 }

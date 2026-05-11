@@ -1,30 +1,43 @@
 #!/bin/sh
 # Replaces build-time placeholder strings with real env var values at startup.
-# This makes one generic Docker image work with any server IP/domain.
+# This makes one generic Vite Docker image work with any server IP/domain.
 #
-# Set these in docker/.env.web (same as you do for api/ai):
-#   NEXT_PUBLIC_API_URL=http://YOUR_IP:3002/api/v1
-#   NEXT_PUBLIC_SOCKET_URL=http://YOUR_IP:3002
-#   NEXT_PUBLIC_CDN_URL=http://YOUR_IP:9001/voxora-widget/v1/voxora.js
+# Set these through apps/web/.env.docker or docker/docker-compose.yml:
+#   VITE_API_URL=http://YOUR_IP/api/v1
+#   VITE_SOCKET_URL=http://YOUR_IP
+#   VITE_WIDGET_URL=http://YOUR_IP/interaone-widget/v1/InteraOne.js
 
 set -e
+
+TARGET_DIR="${WEB_ROOT:-/usr/share/nginx/html}"
+
+escape_sed_replacement() {
+  printf '%s' "$1" | sed 's/[\/&|\\]/\\&/g'
+}
 
 replace() {
   PLACEHOLDER="$1"
   VALUE="$2"
+
   if [ -n "$VALUE" ] && [ "$VALUE" != "$PLACEHOLDER" ]; then
-    find /app/.next /app/public -type f \( -name "*.js" -o -name "*.html" \) \
-      -exec sed -i "s|$PLACEHOLDER|$VALUE|g" {} + 2>/dev/null || true
-    echo "  ✓ $PLACEHOLDER → $VALUE"
+    ESCAPED_VALUE="$(escape_sed_replacement "$VALUE")"
+    find "$TARGET_DIR" -type f \( -name "*.js" -o -name "*.mjs" -o -name "*.html" -o -name "*.css" \) \
+      -exec sed -i "s|$PLACEHOLDER|$ESCAPED_VALUE|g" {} + 2>/dev/null || true
+    echo "  replaced $PLACEHOLDER"
   else
-    echo "  ⚠ $PLACEHOLDER not set — keeping placeholder (app may not work correctly)"
+    echo "  $PLACEHOLDER not set; keeping placeholder"
   fi
 }
 
 echo "Configuring runtime environment..."
-replace "__NEXT_PUBLIC_API_URL__"    "$NEXT_PUBLIC_API_URL"
-replace "__NEXT_PUBLIC_SOCKET_URL__" "$NEXT_PUBLIC_SOCKET_URL"
-replace "__NEXT_PUBLIC_CDN_URL__"    "$NEXT_PUBLIC_CDN_URL"
-echo "Done. Starting Next.js..."
+replace "__VITE_API_URL__" "$VITE_API_URL"
+replace "__VITE_WIDGET_URL__" "$VITE_WIDGET_URL"
+replace "__VITE_SOCKET_URL__" "$VITE_SOCKET_URL"
+replace "__VITE_PUBLIC_ENV__" "$VITE_PUBLIC_ENV"
+replace "__VITE_INTERAONE_MODE__" "$VITE_INTERAONE_MODE"
+replace "__VITE_INTERAONE_EE_ENABLED__" "$VITE_INTERAONE_EE_ENABLED"
+replace "__VITE_INTERAONE_EE_MODULE_PRESENT__" "$VITE_INTERAONE_EE_MODULE_PRESENT"
+replace "__VITE_INTERAONE_LICENSE_KEY__" "$VITE_INTERAONE_LICENSE_KEY"
+echo "Done. Starting web server..."
 
-exec node server.js
+exec nginx -g "daemon off;"

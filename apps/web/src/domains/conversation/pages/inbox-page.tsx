@@ -5,7 +5,6 @@ import { useConversations, useMyConversations, useUnassignedConversations } from
 import { Badge } from "@/shared/ui/badge";
 import { Input } from "@/shared/ui/input";
 import { Loader } from "@/shared/ui/loader";
-import { Card, CardContent } from "@/shared/ui/card";
 import {
   MessageCircle,
   Search,

@@ -63,7 +63,7 @@ export function BillingFailedPage() {
         <p className="mt-4 text-center text-xs text-muted-foreground">
           Need help?{" "}
           <a
-            href="mailto:support@voxora.cloud"
+            href="mailto:support@interaone.com"
             className="text-primary underline-offset-2 hover:underline"
           >
             Contact support

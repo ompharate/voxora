@@ -1,124 +1,89 @@
 import { state, PROTO_VERSION, DEFAULT_WIDGET_ICON_URL, API_BASE_URL } from './config';
-import { elements, adjustTextareaHeight, renderMaximizeIcon, addMessage, showTyping, hideTyping } from './ui';
+import { elements, adjustTextareaHeight, renderMaximizeIcon, addMessage, showTyping, hideTyping, showOpenSkeleton, INTERAONE_LOGO_SVG } from './ui';
 import { bootstrapSession } from './api';
 import { initializeSocket } from './socket';
 import { setupEventListeners } from './events';
 import { clearStoredSession } from './utils/session';
 
+function updateGreeting(name?: string, overrideSubtext?: string) {
+  const greeting = elements.greetingTitle;
+  const subtext = elements.greetingSubtext;
+
+  if (greeting) {
+    greeting.textContent = name ? `Hello, ${name}` : 'How can I help?';
+  }
+  if (subtext) {
+    subtext.textContent = overrideSubtext || 'Ask anything or pick a suggestion below to get started.';
+  }
+}
+
+const DEFAULT_SUGGESTIONS: Array<{ text: string; showOutside: boolean }> = [
+  { text: 'What can you help me with?', showOutside: false },
+  { text: 'I need help with my order', showOutside: false },
+  { text: 'Talk to a human agent', showOutside: false },
+  { text: 'What are your business hours?', showOutside: false },
+];
+
 function applyWidgetAppearance(cfg: any) {
   if (!cfg) return;
   state._uiConfig = cfg || { appearance: {} };
 
-  const title = document.getElementById('vx-title') || document.querySelector('.assistant-header h2');
-  const subtitle = document.getElementById('vx-subtitle');
-  const avatar = document.getElementById('vx-avatar') || document.querySelector('.assistant-header .avatar');
-  const appRoot = document.getElementById('app');
-  const sendButton = document.getElementById('sendBtn');
+  const avatar = elements.brandAvatar || document.getElementById('vx-avatar');
+  const brandLabel = document.querySelector('.assistant-brand-label') as HTMLElement | null;
   const input = document.getElementById('messageInput') as HTMLInputElement;
-  const historyButton = document.getElementById('historyBtn');
   const appearance = cfg.appearance || {};
 
-  const primaryColor = appearance.primaryColor || cfg.primaryColor;
-  if (primaryColor) {
-    document.documentElement.style.setProperty('--vx-accent', primaryColor);
-    document.documentElement.style.setProperty('--vx-accent-color', primaryColor);
-    // Send button color is driven by CSS var(--vx-accent) — no inline override needed
-    if (avatar) {
-      avatar.style.background = primaryColor;
-      avatar.style.boxShadow = `0 4px 12px ${primaryColor}55`;
-    }
+  // Apply Theme
+  const rawTheme = String(appearance.theme || 'dark').toLowerCase();
+  const normalizedTheme = rawTheme.includes('light') ? 'light-theme' : 'dark-theme';
+  document.documentElement.classList.remove('light-theme', 'dark-theme');
+  document.documentElement.classList.add(normalizedTheme);
+  document.body.classList.remove('light-theme', 'dark-theme');
+  document.body.classList.add(normalizedTheme);
+
+  updateGreeting(state.userName, appearance.welcomeMessage);
+  if (brandLabel && cfg.displayName) brandLabel.textContent = `${cfg.displayName} Assistant`;
+
+  if (input && !input.value) {
+    input.placeholder = 'Type @ to ask about this page';
   }
 
-  const bgColor = cfg.backgroundColor || appearance.backgroundColor;
-  if (bgColor) {
-    document.documentElement.style.setProperty('--vx-bg', bgColor);
-    // Keep inline fallbacks for elements painted before CSS var resolves
-    if (appRoot) appRoot.style.backgroundColor = bgColor;
-    const historyOverlay = document.querySelector('.history-overlay') as HTMLElement;
-    if (historyOverlay) historyOverlay.style.background = bgColor;
-  }
-
-  if (appearance.textColor) {
-    document.documentElement.style.setProperty('--vx-text', appearance.textColor);
-    const styleEl = document.createElement('style');
-    styleEl.innerHTML = `
-      .widget-app, .widget-topbar-title, .history-header h3, .history-item-preview,
-      .assistant-header h2, .suggestion-btn, .message-bubble, #messageInput,
-      .message.user .message-bubble, .message.agent .message-bubble,
-      .message-bubble .md p, .message-bubble .md strong, .message-bubble .md li,
-      .history-state, details.thought-box summary, .thought-content, .thought-step-label,
-      .topbar-action-btn, .close-history-btn, #sendBtn, #sendBtn svg {
-        color: ${appearance.textColor} !important;
-      }
-      .suggestion-btn svg, .history-item-date, .history-header p,
-      .thought-step.thinking .thought-step-label {
-        color: ${appearance.textColor} !important;
-        opacity: 0.7;
-      }
-      #messageInput::placeholder {
-        color: ${appearance.textColor} !important;
-        opacity: 0.5;
-      }
-    `;
-    document.head.appendChild(styleEl);
-  }
-
-  if (cfg.displayName && title) {
-    title.textContent = appearance.welcomeMessage || cfg.displayName;
-  }
-  const topbarTitle = document.querySelector('.widget-topbar-title') as HTMLElement | null;
-  if (topbarTitle && cfg.displayName) topbarTitle.textContent = cfg.displayName;
-  if (appearance.launcherText && subtitle) {
-    subtitle.textContent = appearance.launcherText;
-  }
-  if (appearance.launcherText && input && !input.value) {
-    input.placeholder = appearance.launcherText;
-  }
-
-  const finalLogoUrl = appearance.logoUrl || cfg.logoUrl || DEFAULT_WIDGET_ICON_URL;
-  if (finalLogoUrl) {
-    if (avatar) {
-      avatar.innerHTML = '';
+  const finalLogoUrl = appearance.logoUrl || cfg.logoUrl;
+  if (avatar) {
+    avatar.innerHTML = '';
+    if (finalLogoUrl) {
       const img = document.createElement('img');
       img.src = finalLogoUrl;
       img.alt = (cfg.displayName || 'Logo') + ' logo';
       img.style.width = '100%';
       img.style.height = '100%';
       img.style.objectFit = 'cover';
-      img.style.borderRadius = '999px';
-      img.onerror = function() {
-        if (img.src !== DEFAULT_WIDGET_ICON_URL) {
-          img.src = DEFAULT_WIDGET_ICON_URL;
-          return;
-        }
-        avatar!.textContent = 'V';
+      img.style.borderRadius = '8px';
+      img.onerror = function () {
+        avatar.innerHTML = INTERAONE_LOGO_SVG;
       };
       avatar.appendChild(img);
+    } else {
+      avatar.innerHTML = INTERAONE_LOGO_SVG;
     }
-  } else {
-    if (avatar) avatar.textContent = 'V';
   }
 
-  const acceptMediaFiles = cfg?.features?.acceptMediaFiles ?? cfg?.acceptMediaFiles ?? true;
-  if (elements.attachBtn) {
-    elements.attachBtn.style.display = acceptMediaFiles ? 'flex' : 'none';
-    elements.attachBtn.disabled = !acceptMediaFiles;
-  }
-  if (elements.fileInput) elements.fileInput.disabled = !acceptMediaFiles;
 
   // Render dynamic suggestion buttons
   const suggestionsContainer = document.getElementById('suggestions');
   if (suggestionsContainer) {
-    const suggestions: Array<{ text: string; showOutside: boolean }> = Array.isArray(cfg.suggestions)
-      ? cfg.suggestions
+    const configuredSuggestions: Array<{ text: string; showOutside: boolean }> = Array.isArray(cfg.suggestions)
+      ? cfg.suggestions.filter((s: { text?: string }) => !!s.text)
       : [];
+    const suggestions = configuredSuggestions.length ? configuredSuggestions : DEFAULT_SUGGESTIONS;
     suggestionsContainer.innerHTML = '';
-    suggestions.forEach((s) => {
+    suggestions.forEach((s, index) => {
       if (!s.text) return;
       const btn = document.createElement('button');
       btn.className = 'suggestion-btn';
       btn.dataset['text'] = s.text;
-      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${s.text}</span>`;
+      btn.textContent = s.text;
+      btn.style.animationDelay = `${Math.min(index * 60, 240)}ms`;
       btn.addEventListener('click', () => {
         const input = document.getElementById('messageInput') as HTMLInputElement | null;
         if (!input) return;
@@ -161,16 +126,57 @@ function minimizeWidget() {
   }
 }
 
+type WidgetTab = 'chat' | 'history';
+
+function setActiveTab(tab: WidgetTab) {
+  const tabs: Array<{ key: WidgetTab; el: HTMLButtonElement | null }> = [
+    { key: 'chat', el: elements.tabChat || null },
+    { key: 'history', el: elements.tabHistory || null },
+  ];
+
+  tabs.forEach(({ key, el }) => {
+    if (!el) return;
+    const isActive = key === tab;
+    el.classList.toggle('active', isActive);
+    el.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+
+  const inputArea = document.querySelector('.input-area') as HTMLElement | null;
+  const messagesContainer = elements.messagesContainer as HTMLElement | null;
+  const welcomeScreen = elements.welcomeScreen as HTMLElement | null;
+  const historyOverlay = elements.historyOverlay as HTMLElement | null;
+
+  if (tab === 'history') {
+    if (elements.historyBtn) elements.historyBtn.click();
+    if (inputArea) inputArea.style.display = 'none';
+    if (messagesContainer) messagesContainer.style.display = 'none';
+    if (welcomeScreen) welcomeScreen.style.display = 'none';
+    return;
+  }
+
+  if (historyOverlay) historyOverlay.style.display = 'none';
+  if (elements.historySearch) elements.historySearch.value = '';
+
+  if (inputArea) inputArea.style.display = '';
+  const hasMessages = !!(messagesContainer && messagesContainer.childElementCount > 0);
+  if (messagesContainer) messagesContainer.style.display = hasMessages ? 'flex' : 'none';
+  if (welcomeScreen) welcomeScreen.style.display = hasMessages ? 'none' : 'flex';
+}
+
 async function handleInitWidget(payload: any) {
   if (state._connectTimeout) { clearTimeout(state._connectTimeout); state._connectTimeout = null; }
 
-  state.voxoraPublicKey = payload.publicKey;
-  (window as any).__voxoraPageUrl = payload.pageUrl;
-  (window as any).__voxoraPageTitle = payload.pageTitle || '';
+  state.InteraOnePublicKey = payload.publicKey;
+  if (payload.identity?.name) {
+    state.userName = payload.identity.name;
+  }
+  (window as any).__InteraOnePageUrl = payload.pageUrl;
+  (window as any).__InteraOnePageTitle = payload.pageTitle || '';
 
   if (payload.appearance) applyWidgetAppearance(payload.appearance);
+  updateGreeting(state.userName, payload.appearance?.welcomeMessage);
 
-  await bootstrapSession(payload, function(token: string, sessionId: string) {
+  await bootstrapSession(payload, function (token: string, sessionId: string) {
     state.widgetToken = token;
     state.currentSessionId = sessionId;
 
@@ -178,7 +184,7 @@ async function handleInitWidget(payload: any) {
 
     if (elements.messageInput) {
       elements.messageInput.disabled = false;
-      elements.messageInput.placeholder = 'Type your message...';
+      elements.messageInput.placeholder = 'Type @ to ask about this page';
     }
   });
 }
@@ -192,6 +198,10 @@ document.addEventListener("DOMContentLoaded", function () {
     renderMaximizeIcon();
   }
 
+  if (elements.tabChat) elements.tabChat.addEventListener('click', () => setActiveTab('chat'));
+  if (elements.tabHistory) elements.tabHistory.addEventListener('click', () => setActiveTab('history'));
+  if (elements.closeHistoryBtn) elements.closeHistoryBtn.addEventListener('click', () => setActiveTab('chat'));
+
   adjustTextareaHeight();
 
   if (elements.messageInput && elements.sendBtn) {
@@ -200,11 +210,11 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.sendBtn.disabled = true;
   }
 
-  state._connectTimeout = setTimeout(function() {
+  state._connectTimeout = setTimeout(function () {
     if (elements.messageInput && elements.messageInput.disabled) {
       elements.messageInput.disabled = false;
       elements.messageInput.placeholder = 'Connection failed — try refreshing';
-      console.warn('[VoxoraWidget] INIT_WIDGET not received within 12s — unblocking input');
+      console.warn('[InteraOneWidget] INIT_WIDGET not received within 12s — unblocking input');
     }
   }, 12000) as unknown as number;
 
@@ -213,27 +223,34 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-window.addEventListener('message', function(event) {
+window.addEventListener('message', function (event) {
   if (state.parentOrigin && event.origin !== state.parentOrigin) return;
   const msg = event.data;
   if (!msg || !msg.type || msg.version !== PROTO_VERSION) return;
 
   switch (msg.type) {
+    case 'SHOW_SKELETON':
+      showOpenSkeleton(msg.payload?.durationMs ?? 1000);
+      break;
     case 'INIT_WIDGET':
       handleInitWidget(msg.payload);
       break;
 
     case 'USER_IDENTITY':
-      if (state.voxoraPublicKey && API_BASE_URL) {
+      if (state.InteraOnePublicKey && API_BASE_URL) {
+        if (msg.payload?.name) {
+          state.userName = msg.payload.name;
+          updateGreeting(state.userName, state._uiConfig?.appearance?.welcomeMessage);
+        }
         const refreshPayload = {
-          publicKey: state.voxoraPublicKey,
+          publicKey: state.InteraOnePublicKey,
           apiUrl: API_BASE_URL,
           visitorId: msg.payload.visitorId || '',
           identity: msg.payload,
-          pageUrl: (window as any).__voxoraPageUrl || '',
+          pageUrl: (window as any).__InteraOnePageUrl || '',
         };
-        clearStoredSession(state.voxoraPublicKey);
-        bootstrapSession(refreshPayload, function(token: string, sessionId: string) {
+        clearStoredSession(state.InteraOnePublicKey);
+        bootstrapSession(refreshPayload, function (token: string, sessionId: string) {
           state.widgetToken = token;
           state.currentSessionId = sessionId;
           if (state.socket) {
@@ -246,8 +263,8 @@ window.addEventListener('message', function(event) {
       break;
 
     case 'PAGE_CHANGE':
-      (window as any).__voxoraPageUrl = msg.payload.pageUrl;
-      (window as any).__voxoraPageTitle = msg.payload.pageTitle || '';
+      (window as any).__InteraOnePageUrl = msg.payload.pageUrl;
+      (window as any).__InteraOnePageTitle = msg.payload.pageTitle || '';
       break;
 
     case 'SUGGESTION_CLICK': {

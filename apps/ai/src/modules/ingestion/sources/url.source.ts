@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 
-const USER_AGENT = "VoxoraBot/1.0 (knowledge indexer)";
+const USER_AGENT = "InteraOne/1.0 (knowledge indexer)";
 const REQUEST_TIMEOUT = 30_000;
 
 export interface FetchedPage {
@@ -9,30 +9,30 @@ export interface FetchedPage {
   text: string;
 }
 
-// ── Static-asset filter ───────────────────────────────────────────────────────
 
-/**
- * File extensions that are never HTML content pages.
- * We check the URL path before even making a request.
- */
+
+
+
+
+
 const STATIC_EXTENSIONS = new Set([
-  // styles / scripts
+  
   "css", "js", "mjs", "cjs", "map",
-  // images
+  
   "png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "bmp", "avif", "tiff",
-  // fonts
+  
   "woff", "woff2", "ttf", "eot", "otf",
-  // archives / binaries
+  
   "zip", "gz", "tar", "rar", "7z", "exe", "dmg", "pkg", "deb", "rpm",
-  // media
+  
   "mp3", "mp4", "webm", "ogg", "wav", "avi", "mov", "mkv", "flac",
-  // documents (handled by separate pipelines)
+  
   "pdf", "docx", "doc", "xlsx", "pptx",
-  // data
+  
   "json", "xml", "csv", "yaml", "yml",
 ]);
 
-/** Returns true if the URL path ends with a known static-asset extension */
+ 
 function isStaticAssetUrl(url: string): boolean {
   try {
     const pathname = new URL(url).pathname;
@@ -43,21 +43,21 @@ function isStaticAssetUrl(url: string): boolean {
   }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Strip HTML and return clean plain text */
+
+ 
 function htmlToText(html: string): string {
   const $ = cheerio.load(html);
-  // Remove only truly non-readable elements. Keep layout regions (nav/header/footer)
-  // because many modern landing pages place primary copy there.
+  
+  
   $("script, style, noscript, iframe").remove();
-  // Collapse whitespace
+  
   return $("body").text().replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-/**
- * Extract minimal semantic content when body text is too thin (SPA shells, JS-gated pages).
- */
+
+
+
 function extractMetadataFallback(html: string): string {
   const $ = cheerio.load(html);
 
@@ -72,7 +72,7 @@ function extractMetadataFallback(html: string): string {
   return [title, h1, h2, description].filter(Boolean).join("\n\n").trim();
 }
 
-/** Return all same-origin absolute URLs found on a page, excluding static assets */
+ 
 function extractLinks(html: string, pageUrl: string): string[] {
   const $ = cheerio.load(html);
   const base = new URL(pageUrl);
@@ -83,7 +83,7 @@ function extractLinks(html: string, pageUrl: string): string[] {
     if (!href) return;
     try {
       const resolved = new URL(href, pageUrl);
-      // Same origin only, http(s) only, drop fragments, skip static assets
+      
       if (
         resolved.hostname === base.hostname &&
         resolved.protocol.startsWith("http") &&
@@ -93,12 +93,12 @@ function extractLinks(html: string, pageUrl: string): string[] {
         seen.add(resolved.toString());
       }
     } catch {
-      /* skip malformed */
+       
     }
   });
 
-  // Many SPAs don't expose crawlable anchors in SSR HTML. Scan additional
-  // attributes often used by routers and cards.
+  
+  
   $("[href], [data-href], [data-url], [content], [src]").each((_, el) => {
     const attrValues = [
       $(el).attr("href"),
@@ -120,12 +120,12 @@ function extractLinks(html: string, pageUrl: string): string[] {
           seen.add(resolved.toString());
         }
       } catch {
-        /* skip malformed */
+         
       }
     }
   });
 
-  // Absolute same-origin URLs that may appear inside inline JSON/script blobs.
+  
   const absUrlPattern = /https?:\/\/[^\s"'<>`]+/g;
   for (const match of html.match(absUrlPattern) || []) {
     try {
@@ -139,11 +139,11 @@ function extractLinks(html: string, pageUrl: string): string[] {
         seen.add(resolved.toString());
       }
     } catch {
-      /* skip malformed */
+       
     }
   }
 
-  // Root-relative route literals inside JS/JSON, e.g. "/courses/react".
+  
   const relPathPattern = /["'`]\/(?!\/)([^"'`\s?#][^"'`\s]*)["'`]/g;
   for (const match of html.matchAll(relPathPattern)) {
     const pathPart = match[1]?.trim();

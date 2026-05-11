@@ -1,30 +1,25 @@
-import { Worker, Queue, ConnectionOptions } from "bullmq";
+import { Worker, Queue } from "bullmq";
 import config from "../config";
 import { DocumentJob } from "../modules/ingestion/ingestion.types";
 import { runIngestionPipeline } from "../modules/ingestion/pipelines/file.pipeline";
 import { runUrlIngestionPipeline } from "../modules/ingestion/pipelines/url.pipeline";
 import { runTextIngestionPipeline } from "../modules/ingestion/pipelines/text.pipeline";
 import { vectorStore } from "../infrastructure/vector";
-import { connectDB, KnowledgeModel } from "../shared/db/db";
+import { connectDB, KnowledgeModel } from "../infrastructure/db";
+import { NotificationModel } from "../infrastructure/db";
+import { getBullMQConnection } from "../infrastructure/queue/bullmq.client";
+import { getSyncDelay } from "../modules/ingestion/utils/sync-delays";
+import { cacheRedis, pubsubRedis } from "../infrastructure/cache/redis.client";
+import { Emitter } from "@socket.io/redis-emitter";
 
 export const INGESTION_QUEUE = "document-ingestion";
-
-/** Milliseconds between re-crawls per syncFrequency option */
-const SYNC_DELAYS: Record<string, number> = {
-  "1hour": 1 * 60 * 60 * 1000,
-  "6hours": 6 * 60 * 60 * 1000,
-  "daily": 24 * 60 * 60 * 1000,
-};
+const URL_LOCK_TTL_SECONDS = parseInt(process.env.URL_INGEST_LOCK_TTL_SECONDS || "3600", 10);
+const LOCK_RETRY_DELAY_MS = 60_000;
 
 export function startIngestionWorker() {
-  const connection: ConnectionOptions = {
-    host: config.redis.host,
-    port: config.redis.port,
-    password: config.redis.password,
-    maxRetriesPerRequest: null,
-  };
+  const connection = getBullMQConnection();
 
-  // Separate queue instance used only for self-scheduling URL re-crawl jobs
+  
   const ingestionQueue = new Queue<DocumentJob>(INGESTION_QUEUE, {
     connection,
     defaultJobOptions: {
@@ -34,23 +29,49 @@ export function startIngestionWorker() {
       removeOnFail: 50,
     },
   });
-
+  
   const worker = new Worker<DocumentJob, void, string>(
     INGESTION_QUEUE,
     async (job) => {
       const { source, jobType } = job.data;
 
-      // Delete-vectors: remove all Qdrant points for this document and stop
+      
       if (jobType === "delete-vectors") {
         await vectorStore.deleteByDocumentId(job.data.documentId, job.data.organizationId);
         console.log(
-          `[Ingestion Worker] Deleted Qdrant vectors for documentId=${job.data.documentId}`,
+          `[InteraOne AI] Deleted Qdrant vectors for documentId=${job.data.documentId}`,
         );
         return;
       }
 
       if (source === "url") {
-        await runUrlIngestionPipeline(job.data);
+        const lockKey = `ingestion:url:lock:${job.data.documentId}`;
+        const lockValue = job.id ?? "1";
+
+        const lockAcquired = await cacheRedis.set(lockKey, lockValue, "EX", URL_LOCK_TTL_SECONDS, "NX");
+        if (!lockAcquired) {
+          const retryJobId = `ingest-lock-retry:${job.data.documentId}`;
+          try {
+            await ingestionQueue.add("ingest", job.data, {
+              delay: LOCK_RETRY_DELAY_MS,
+              jobId: retryJobId,
+              removeOnComplete: true,
+              removeOnFail: true,
+            });
+          } catch (err: any) {
+            console.warn(`[Ingestion Worker] Lock retry already scheduled for documentId=${job.data.documentId}`);
+          }
+          console.log(
+            `[Ingestion Worker] URL ingestion skipped due to active lock (documentId=${job.data.documentId})`,
+          );
+          return;
+        }
+
+        try {
+          await runUrlIngestionPipeline(job.data);
+        } finally {
+          await cacheRedis.del(lockKey).catch(() => undefined);
+        }
         return;
       }
 
@@ -69,53 +90,114 @@ export function startIngestionWorker() {
   );
 
   worker.on("completed", async (job) => {
-    console.log(`[Ingestion Worker] Job ${job.id} completed`);
+    console.log(`[InteraOne AI] Job ${job.id} completed`);
+
+    if (job.data.jobType !== "delete-vectors") {
+      await connectDB();
+      const notif = await (NotificationModel as any).create({
+        organizationId: job.data.organizationId,
+        type: "ai_sync",
+        title: "Knowledge Base Indexed",
+        description: `AI training completed for '${job.data.fileName || "Data Source"}'.`,
+      });
+
+      const ioEmitter = new Emitter(pubsubRedis);
+      ioEmitter.to(`org:${job.data.organizationId}`).emit("notification", {
+        id: notif._id,
+        type: notif.type,
+        title: notif.title,
+        description: notif.description,
+        timestamp: notif.createdAt,
+        isRead: notif.isRead
+      });
+    }
 
     // Self-schedule URL re-crawl based on syncFrequency (skip for delete-vectors jobs)
-    if (
-      job.data.jobType !== "delete-vectors" &&
-      job.data.source === "url" &&
-      job.data.syncFrequency
-    ) {
-      const delay = SYNC_DELAYS[job.data.syncFrequency];
-      if (delay) {
-        // Check isPaused flag in MongoDB before scheduling — user may have paused
-        // the source while a crawl was already in flight.
-        await connectDB();
-        const doc = await (KnowledgeModel as any).findOne(
-          {
-            _id: job.data.documentId,
-            organizationId: job.data.organizationId,
-          },
-          { isPaused: 1 },
-        );
+    if (job.data.jobType !== "delete-vectors" && job.data.source === "url") {
+      await connectDB();
+      const doc = await (KnowledgeModel as any).findOne(
+        {
+          _id: job.data.documentId,
+          organizationId: job.data.organizationId,
+        },
+        {
+          isPaused: 1,
+          syncFrequency: 1,
+          sourceUrl: 1,
+          fetchMode: 1,
+          crawlDepth: 1,
+          title: 1,
+        },
+      ).lean();
 
-        // Document was deleted — skip re-scheduling
-        if (!doc) {
-          console.log(
-            `[Ingestion Worker] Document deleted, skipping re-crawl for documentId=${job.data.documentId}`,
-          );
-          return;
-        }
-
-        // Source was paused while the crawl was in flight — skip re-scheduling
-        if (doc.isPaused) {
-          console.log(
-            `[Ingestion Worker] Source is paused, skipping re-crawl schedule for documentId=${job.data.documentId}`,
-          );
-          return;
-        }
-
-        await ingestionQueue.add("ingest", job.data, { delay });
+      if (!doc) {
         console.log(
-          `[Ingestion Worker] Re-crawl scheduled in ${delay / 60_000} min for ${job.data.sourceUrl}`,
+          `[Ingestion Worker] Document deleted, skipping re-crawl for documentId=${job.data.documentId}`,
         );
+        return;
       }
+
+      if (doc.isPaused) {
+        console.log(
+          `[Ingestion Worker] Source is paused, skipping re-crawl schedule for documentId=${job.data.documentId}`,
+        );
+        return;
+      }
+
+      const syncFrequency = doc.syncFrequency || job.data.syncFrequency;
+      const delay = getSyncDelay(syncFrequency);
+      if (!delay) return;
+
+      const nextJob: DocumentJob = {
+        ...job.data,
+        sourceUrl: doc.sourceUrl || job.data.sourceUrl,
+        fetchMode: doc.fetchMode || job.data.fetchMode,
+        crawlDepth: doc.crawlDepth ?? job.data.crawlDepth,
+        syncFrequency,
+        fileName: doc.title || job.data.fileName,
+      };
+
+      if (!nextJob.sourceUrl) {
+        console.log(
+          `[Ingestion Worker] Missing sourceUrl, skipping re-crawl for documentId=${job.data.documentId}`,
+        );
+        return;
+      }
+
+      const recrawlJobId = `recrawl:${job.data.documentId}`;
+      const existing = await ingestionQueue.getJob(recrawlJobId);
+      if (existing) {
+        await existing.remove();
+      }
+
+      await ingestionQueue.add("ingest", nextJob, { delay, jobId: recrawlJobId });
+      console.log(
+        `[Ingestion Worker] Re-crawl scheduled in ${delay / 60_000} min for ${nextJob.sourceUrl}`,
+      );
     }
   });
-  worker.on("failed", (job, err) =>
-    console.error(`[Ingestion Worker] Job ${job?.id} failed:`, err.message),
-  );
+  worker.on("failed", async (job, err) => {
+    console.error(`[Ingestion Worker] Job ${job?.id} failed:`, err.message);
+    if (job && job.data.jobType !== "delete-vectors") {
+      await connectDB();
+      const notif = await (NotificationModel as any).create({
+        organizationId: job.data.organizationId,
+        type: "ai_sync",
+        title: "Knowledge Sync Failed",
+        description: `Failed to index '${job.data.fileName || "Data Source"}'.`
+      });
+
+      const ioEmitter = new Emitter(pubsubRedis);
+      ioEmitter.to(`org:${job.data.organizationId}`).emit("notification", {
+        id: notif._id,
+        type: notif.type,
+        title: notif.title,
+        description: notif.description,
+        timestamp: notif.createdAt,
+        isRead: notif.isRead
+      });
+    }
+  });
   worker.on("error", (err) =>
     console.error("[Ingestion Worker] Worker error:", err),
   );

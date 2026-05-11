@@ -1,5 +1,5 @@
 /**
- * Voxora Widget Types
+ * InteraOne Widget Types
  *
  * Types used by the LOADER script (runs on customer domain).
  * The full cross-origin protocol is in protocol.ts.
@@ -66,7 +66,6 @@ export interface WidgetServerConversationConfig {
 }
 
 export interface WidgetServerFeatureConfig {
-  acceptMediaFiles?: boolean;
   endUserDomAccess?: boolean;
 }
 
@@ -79,8 +78,6 @@ export interface WidgetServerFeatureConfig {
 export interface WidgetState {
   /** Whether the widget panel is currently visible */
   isOpen: boolean;
-  /** Current badge count (updated via UNREAD_COUNT messages) */
-  unreadCount: number;
 }
 
 // ─── API response shapes ──────────────────────────────────────────────────────

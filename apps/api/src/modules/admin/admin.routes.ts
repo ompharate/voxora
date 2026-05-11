@@ -8,16 +8,7 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole("admin"));
 
-// ** TEAM ROUTES **
-router.get(
-  "/teams",
-  validateRequest(adminSchema.paginationQuery, "query"),
-  AdminController.getTeams,
-);
-router.get("/teams/:id", AdminController.getTeamById);
-router.post("/teams", validateRequest(adminSchema.createTeam), AdminController.createTeam);
-router.put("/teams/:id", validateRequest(adminSchema.updateTeam), AdminController.updateTeam);
-router.delete("/teams/:id", AdminController.deleteTeam);
+
 
 // ** AGENT ROUTES **
 router.get(

@@ -16,7 +16,6 @@ router.use(authenticate);
 
 router.post("/presigned-upload", storageController.generateUploadUrl);
 router.post("/presigned-download", storageController.generateDownloadUrl);
-router.post("/conversation-upload", storageController.generateConversationUploadUrl);
 router.get("/files", storageController.listFiles);
 router.get("/metadata/:fileKey", storageController.getFileMetadata);
 router.delete("/:fileKey", storageController.deleteFile);

@@ -1,5 +1,5 @@
 {
-  "name": "voxora-api",
+  "name": "interaone-api",
   "version": "1.0.0",
   "description": "Real-time chat support application backend with Socket.IO, Redis, and MongoDB",
   "scripts": {

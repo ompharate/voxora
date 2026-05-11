@@ -6,7 +6,7 @@ export interface ConversationParticipant {
 }
 
 export interface ConversationVisitor {
-  sessionId: string;
+  sessionId?: string;
   name: string;
   email: string;
   isAnonymous: boolean;
@@ -76,10 +76,7 @@ export interface ConversationDetail {
   };
 }
 
-export interface TeamOption {
-  _id: string;
-  name: string;
-}
+
 
 export interface AgentOption {
   _id: string;
@@ -124,18 +121,8 @@ export interface RouteResponse {
   data: {
     conversationId: string;
     assignedTo?: string;
-    teamId?: string;
-    teamName?: string;
     agentName?: string;
   };
 }
 
-export interface TeamsResponse {
-  success: boolean;
-  data: TeamOption[];
-}
 
-export interface TeamAgentsResponse {
-  success: boolean;
-  data: AgentOption[];
-}

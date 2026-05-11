@@ -21,36 +21,15 @@ import {
 } from "@/shared/ui/pagination";
 import { usePagination } from "@/shared/hooks/usePagination";
 import type { Agent } from "../types/types";
-import type { Team } from "@/domains/teams/types/types";
+
 
 interface FilterableAgentTableProps {
   agents: Agent[];
-  teams: Team[];
   onViewDetails: (agent: Agent) => void;
   onResendInvite: (agentId: string) => void;
 }
 
-function getContrastColor(hex: string | undefined | null): string {
-  if (!hex) return "#ffffff";
 
-  let c = hex.replace("#", "");
-  if (c.length === 3) {
-    c = c
-      .split("")
-      .map((ch) => ch + ch)
-      .join("");
-  }
-
-  if (c.length !== 6) return "#ffffff";
-
-  const r = parseInt(c.substring(0, 2), 16);
-  const g = parseInt(c.substring(2, 4), 16);
-  const b = parseInt(c.substring(4, 6), 16);
-
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-  return luminance > 0.6 ? "#000000" : "#ffffff";
-}
 
 function formatDate(dateValue: string | Date | null | undefined): string {
   if (!dateValue) return "Never";
@@ -81,13 +60,11 @@ function formatDate(dateValue: string | Date | null | undefined): string {
 
 export function FilterableAgentTable({
   agents,
-  teams,
   onViewDetails,
   onResendInvite,
 }: FilterableAgentTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [teamFilter, setTeamFilter] = useState("all");
 
   // Apply filters
   const filteredAgents = agents.filter((agent) => {
@@ -107,12 +84,7 @@ export function FilterableAgentTable({
       return false;
     }
 
-    // Team filter
-    if (teamFilter !== "all") {
-      if (!agent.teams || !agent.teams.some((team) => team._id === teamFilter)) {
-        return false;
-      }
-    }
+
 
     return true;
   });
@@ -128,7 +100,7 @@ export function FilterableAgentTable({
     startItem,
     endItem,
     totalItems,
-  } = usePagination(filteredAgents, 10, [searchQuery, statusFilter, teamFilter]);
+  } = usePagination(filteredAgents, 10, [searchQuery, statusFilter]);
 
   return (
     <Card>
@@ -170,25 +142,7 @@ export function FilterableAgentTable({
                 </div>
               </th>
 
-              {/* Teams Column with Filter */}
-              <th className="px-4 py-3 text-left">
-                <div className="space-y-2">
-                  <div className="font-medium text-foreground">Teams</div>
-                  <Select value={teamFilter} onValueChange={(value) => setTeamFilter(value)}>
-                    <SelectTrigger className="w-full h-8 text-xs cursor-pointer">
-                      <SelectValue placeholder="All Teams" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Teams</SelectItem>
-                      {teams.map((team) => (
-                        <SelectItem key={team._id} value={team._id}>
-                          {team.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </th>
+
 
               {/* Last Active Column */}
               <th className="px-4 py-3 text-left">
@@ -199,7 +153,7 @@ export function FilterableAgentTable({
               <th className="px-4 py-3 text-right">
                 <div className="flex items-center justify-end gap-2">
                   <span className="font-medium text-foreground">Actions</span>
-                  {(searchQuery || statusFilter !== "all" || teamFilter !== "all") && (
+                  {(searchQuery || statusFilter !== "all") && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -207,7 +161,6 @@ export function FilterableAgentTable({
                       onClick={() => {
                         setSearchQuery("");
                         setStatusFilter("all");
-                        setTeamFilter("all");
                       }}
                     >
                       <X className="h-3 w-3 mr-1" />
@@ -255,52 +208,7 @@ export function FilterableAgentTable({
                       {agent.inviteStatus}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center space-x-1">
-                      {agent.teams && agent.teams.length > 0 ? (
-                        <>
-                          {agent.teams.slice(0, 3).map((team, tIdx) => {
-                            const bg = team.color || "#3b82f6";
-                            const textColor = getContrastColor(bg);
 
-                            return (
-                              <div key={team._id || `team-${tIdx}`} className="relative group">
-                                <div
-                                  className="w-2.5 h-2.5 rounded-full cursor-pointer border border-border"
-                                  style={{ backgroundColor: bg }}
-                                ></div>
-
-                                <div
-                                  className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100
-                                 text-xs px-2 py-1 rounded-md shadow-lg
-                                 transition-all duration-200 whitespace-nowrap z-10"
-                                  style={{
-                                    backgroundColor: bg,
-                                    color: textColor,
-                                  }}
-                                >
-                                  {team.name}
-
-                                  <div
-                                    className="absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-3 h-3 rotate-45"
-                                    style={{ backgroundColor: bg }}
-                                  ></div>
-                                </div>
-                              </div>
-                            );
-                          })}
-
-                          {agent.teams.length > 3 && (
-                            <span className="text-xs text-muted-foreground">
-                              +{agent.teams.length - 3}
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">No teams</span>
-                      )}
-                    </div>
-                  </td>
                   <td className="px-4 py-3 text-muted-foreground text-sm">
                     {formatDate(agent.lastSeen)}
                   </td>

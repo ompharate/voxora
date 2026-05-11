@@ -12,14 +12,24 @@ const getOrgId = (req: Request): string => (req as AuthenticatedRequest).user.ac
 // ─── GET all conversations ──────────────────────────────────────────────────────
 
 export const getConversations = asyncHandler(async (req: Request, res: Response) => {
-  const { status, limit = 50, offset = 0 } = req.query;
+  const { status, limit = 50, offset = 0, assignedToMe, unassigned } = req.query;
   const { userId, orgRole } = (req as AuthenticatedRequest).user;
+
+  let assignedTo: string | null | undefined = userId;
+
+  if (unassigned === "true") {
+    assignedTo = null; // Explicitly null for unassigned
+  } else if (assignedToMe === "true") {
+    assignedTo = userId;
+  } else if (orgRole === "admin" || orgRole === "owner") {
+    assignedTo = undefined; // Undefined for "All" view
+  }
 
   const result = await conversationService.getConversations(getOrgId(req), {
     status: status as string,
     limit: Number(limit),
     offset: Number(offset),
-    assignedTo: orgRole === "agent" ? userId : undefined,
+    assignedTo,
   });
 
   sendResponse(res, 200, true, "Conversations fetched successfully", result);
@@ -88,20 +98,20 @@ export const updateVisitorInfo = asyncHandler(async (req: Request, res: Response
 
 export const routeConversation = asyncHandler(async (req: Request, res: Response) => {
   const conversationId = req.params.conversationId as string;
-  const { teamId, agentId, reason } = req.body;
+  const { agentId, reason } = req.body;
   const orgId = getOrgId(req);
 
-  if (!teamId && !agentId) return sendError(res, 400, "Either teamId or agentId must be provided");
+  if (!agentId) return sendError(res, 400, "agentId must be provided");
 
   const result = await conversationService.routeConversation(
     orgId,
     conversationId,
-    { teamId, agentId, reason },
+    { agentId, reason },
     (req as AuthenticatedRequest).user.userId,
   );
 
   if (!result.found) return sendError(res, 404, "Conversation not found");
-  if (result.noAgent) return sendError(res, 404, `No available agents found in team ${result.teamId}`);
+  if (result.noAgent) return sendError(res, 404, "No available agents");
   if (result.agentNotFound) return sendError(res, 404, "Agent not found");
 
   const sm = getSocketManager();
@@ -111,7 +121,6 @@ export const routeConversation = asyncHandler(async (req: Request, res: Response
         conversationId: result.originalConversation!._id,
         subject: result.originalConversation!.subject,
         routedTo: result.selectedAgentId,
-        teamName: result.teamName,
         agentName: result.agentName,
         reason: reason || "Manual routing",
         timestamp: new Date(),
@@ -134,8 +143,6 @@ export const routeConversation = asyncHandler(async (req: Request, res: Response
   sendResponse(res, 200, true, "Conversation routed successfully", {
     conversationId: result.updatedConversation?._id,
     assignedTo: result.updatedConversation?.assignedTo,
-    teamId: result.selectedTeamId,
-    teamName: result.teamName,
     agentName: result.agentName,
   });
 });

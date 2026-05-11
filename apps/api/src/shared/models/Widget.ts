@@ -5,15 +5,13 @@ export interface IWidget extends Document {
   organizationId: Types.ObjectId | IOrganization;
   displayName: string;
   logoUrl?: string;
-  backgroundColor: string;
   appearance: {
+    theme: "dark" | "light";
     primaryColor: string;
-    textColor?: string;
-    position: "bottom-right" | "bottom-left";
-    launcherText: string;
     welcomeMessage: string;
     logoUrl?: string;
   };
+  backgroundColor: string;
   behavior: {
     autoOpen: boolean;
     showOnMobile: boolean;
@@ -23,8 +21,6 @@ export interface IWidget extends Document {
     enabled: boolean;
     model: string;
     fallbackToAgent: boolean;
-    autoAssign: boolean;
-    assignmentStrategy: "round-robin" | "least-loaded";
   };
   conversation: {
     collectUserInfo: {
@@ -34,7 +30,6 @@ export interface IWidget extends Document {
     };
   };
   features: {
-    acceptMediaFiles: boolean;
     endUserDomAccess: boolean;
   };
   suggestions: Array<{
@@ -49,22 +44,16 @@ const WidgetSchema = new Schema<IWidget>(
     organizationId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, unique: true },
     displayName: { type: String, required: true },
     logoUrl: { type: String, required: false, default: "" },
-    backgroundColor: { type: String, required: true },
     appearance: {
-      primaryColor: { type: String, default: "#10b981" },
-      textColor: { type: String, default: "#ffffff" },
-      position: {
-        type: String,
-        enum: ["bottom-right", "bottom-left"],
-        default: "bottom-right",
-      },
-      launcherText: { type: String, default: "Chat with us" },
+      theme: { type: String, enum: ["dark", "light"], default: "dark" },
+      primaryColor: { type: String, default: "#845C6C" },
       welcomeMessage: {
         type: String,
         default: "Hi there! How can we help you today?",
       },
       logoUrl: { type: String, default: "" },
     },
+    backgroundColor: { type: String, default: "#845C6C" },
     behavior: {
       autoOpen: { type: Boolean, default: false },
       showOnMobile: { type: Boolean, default: true },
@@ -74,12 +63,6 @@ const WidgetSchema = new Schema<IWidget>(
       enabled: { type: Boolean, default: true },
       model: { type: String, default: "gpt-4o-mini" },
       fallbackToAgent: { type: Boolean, default: true },
-      autoAssign: { type: Boolean, default: true },
-      assignmentStrategy: {
-        type: String,
-        enum: ["round-robin", "least-loaded"],
-        default: "least-loaded",
-      },
     },
     conversation: {
       collectUserInfo: {
@@ -89,7 +72,6 @@ const WidgetSchema = new Schema<IWidget>(
       },
     },
     features: {
-      acceptMediaFiles: { type: Boolean, default: true },
       endUserDomAccess: { type: Boolean, default: false },
     },
     suggestions: {

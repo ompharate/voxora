@@ -3,7 +3,7 @@ import { conversationsApi } from "../api/conversations.api";
 
 interface RouteConversationPayload {
   conversationId: string;
-  teamId?: string;
+
   agentId?: string;
   reason?: string;
 }
@@ -13,8 +13,8 @@ export const useRouteConversation = () => {
 
   return useMutation({
     mutationKey: ["routeConversation"],
-    mutationFn: ({ conversationId, teamId, agentId, reason }: RouteConversationPayload) =>
-      conversationsApi.routeConversation(conversationId, { teamId, agentId, reason }),
+    mutationFn: ({ conversationId, agentId, reason }: RouteConversationPayload) =>
+      conversationsApi.routeConversation(conversationId, { agentId, reason }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["conversation", variables.conversationId] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });

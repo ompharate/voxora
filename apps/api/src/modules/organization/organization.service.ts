@@ -29,10 +29,10 @@ export class OrganizationService {
         // Auto-create a default widget for the new organization
         await Widget.create({
             organizationId: organization._id,
-            displayName: "Voxora AI",
-            backgroundColor: "#10b981",
+            displayName: organization.name,
+            backgroundColor: "#845C6C",
             appearance: {
-                primaryColor: "#10b981",
+                primaryColor: "#845C6C",
                 textColor: "#ffffff",
                 position: "bottom-right",
                 launcherText: "Chat with us",
@@ -42,7 +42,7 @@ export class OrganizationService {
             behavior: { autoOpen: false, showOnMobile: true, showOnDesktop: true },
             ai: { enabled: true, model: "gpt-4o-mini", fallbackToAgent: true, autoAssign: true, assignmentStrategy: "least-loaded" },
             conversation: { collectUserInfo: { name: true, email: true, phone: false } },
-            features: { acceptMediaFiles: true, endUserDomAccess: true },
+            features: { endUserDomAccess: true },
             suggestions: [
                 { text: "What can you help me with?", showOutside: true },
                 { text: "I need help with my order", showOutside: false },
@@ -122,12 +122,6 @@ export class OrganizationService {
             slug?: string;
             logoUrl?: string;
             whiteLabelEnabled?: boolean;
-            emailSender?: {
-                fromEmail?: string;
-                fromName?: string;
-                domain?: string;
-                verified?: boolean;
-            };
         },
     ) {
         if (data.slug) {
@@ -143,41 +137,6 @@ export class OrganizationService {
         if (typeof data.slug !== "undefined") updateFields.slug = data.slug;
         if (typeof data.logoUrl !== "undefined") updateFields.logoUrl = data.logoUrl;
         if (typeof data.whiteLabelEnabled !== "undefined") updateFields.whiteLabelEnabled = data.whiteLabelEnabled;
-
-        if (data.emailSender) {
-            const current = existingOrg.emailSender || { verified: false };
-
-            const nextFromEmail =
-                typeof data.emailSender.fromEmail !== "undefined"
-                    ? data.emailSender.fromEmail?.trim().toLowerCase()
-                    : current.fromEmail;
-
-            const nextFromName =
-                typeof data.emailSender.fromName !== "undefined"
-                    ? data.emailSender.fromName?.trim()
-                    : current.fromName;
-
-            const nextDomain =
-                typeof data.emailSender.domain !== "undefined"
-                    ? data.emailSender.domain?.trim().toLowerCase()
-                    : current.domain;
-
-            const identityChanged =
-                (current.fromEmail || "") !== (nextFromEmail || "")
-                || (current.fromName || "") !== (nextFromName || "")
-                || (current.domain || "") !== (nextDomain || "");
-
-            // Never allow clients to self-verify sender. Verification can only
-            // remain true when identity is unchanged and already verified.
-            const verified = !!current.verified && !identityChanged;
-
-            updateFields.emailSender = {
-                fromEmail: nextFromEmail,
-                fromName: nextFromName,
-                domain: nextDomain,
-                verified,
-            };
-        }
 
         const org = await Organization.findByIdAndUpdate(orgId, { $set: updateFields }, { new: true });
         if (!org) throw new Error("Organization not found");

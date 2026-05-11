@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Building2, ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
+import Logo from "@/shared/components/logo";
 import { authApi } from "../../api/auth.api";
 import { useAuthStore } from "../../store/auth.store";
 
@@ -82,7 +83,7 @@ export function SelectOrgPage() {
   };
 
   const roleBadge: Record<"owner" | "admin" | "agent", string> = {
-    owner: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    owner: "bg-primary/20 text-primary border border-primary/30",
     admin: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
     agent: "bg-zinc-600/20 text-zinc-400 border border-zinc-600/30",
   };
@@ -92,8 +93,8 @@ export function SelectOrgPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center size-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
-            <Building2 size={24} className="text-emerald-400" />
+          <div className="flex justify-center mb-6">
+            <Logo size={60} animate={true} />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Select Organization</h1>
           <p className="text-muted-foreground mt-1 text-sm">
@@ -108,10 +109,10 @@ export function SelectOrgPage() {
               key={org._id}
               onClick={() => handleSelect(org)}
               disabled={!!selecting}
-              className="w-full flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:border-accent hover:bg-accent/50 transition-all duration-150 cursor-pointer disabled:opacity-60 group"
+              className="w-full flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 cursor-pointer disabled:opacity-60 group"
             >
               {/* Avatar */}
-              <div className="size-10 rounded-lg bg-emerald-600 flex items-center justify-center text-base font-bold text-white shrink-0">
+              <div className="size-10 rounded-lg bg-primary flex items-center justify-center text-base font-bold text-white shrink-0">
                 {org.name?.[0]?.toUpperCase() ?? "?"}
               </div>
 
@@ -130,7 +131,7 @@ export function SelectOrgPage() {
 
               {/* Arrow / Spinner */}
               {selecting === org._id ? (
-                <div className="size-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
               ) : (
                 <ArrowRight size={16} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
               )}

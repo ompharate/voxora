@@ -5,8 +5,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/index.ts'),
-      name: 'VoxoraWidget',
-      fileName: () => 'voxora.js',
+      name: 'InteraOneWidget',
+      fileName: () => 'InteraOne.js',
       formats: ['iife']
     },
     outDir: 'dist',
@@ -16,7 +16,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         inlineDynamicImports: true,
-        name: 'VoxoraWidget'
+        name: 'InteraOneWidget'
       }
     }
   }

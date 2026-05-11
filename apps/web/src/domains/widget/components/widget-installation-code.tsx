@@ -16,7 +16,7 @@ export function WidgetInstallationCode({
   onCopy,
 }: WidgetInstallationCodeProps) {
   const publicKey = isExistingWidget ? widgetId : "your-widget-key";
-  const snippet = `<script\n  src="${cdnUrl}"\n  data-voxora-public-key="${publicKey || "your-widget-key"}"\n  async>\n</script>`;
+  const snippet = `<script\n  src="${cdnUrl}"\n  data-InteraOne-public-key="${publicKey || "your-widget-key"}"\n  async>\n</script>`;
 
   return (
     <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-xl overflow-hidden">
@@ -54,11 +54,10 @@ export function WidgetInstallationCode({
               <button
                 type="button"
                 onClick={onCopy}
-                className={`cursor-pointer inline-flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-semibold border transition-all duration-200 ${
-                  isCopied
+                className={`cursor-pointer inline-flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-semibold border transition-all duration-200 ${isCopied
                     ? "bg-primary/15 border-primary/30 text-primary"
                     : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:border-white/20 hover:text-white/80"
-                }`}
+                  }`}
               >
                 {isCopied ? (
                   <><Check className="h-3 w-3" />Copied!</>

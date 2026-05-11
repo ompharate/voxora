@@ -1,8 +1,5 @@
 export interface WidgetAppearanceSettings {
-  primaryColor: string;
-  textColor?: string;
-  position: "bottom-right" | "bottom-left";
-  launcherText: string;
+  theme: "dark" | "light";
   welcomeMessage: string;
   logoUrl?: string;
 }
@@ -17,8 +14,6 @@ export interface WidgetAiSettings {
   enabled: boolean;
   model: string;
   fallbackToAgent: boolean;
-  autoAssign: boolean;
-  assignmentStrategy: "round-robin" | "least-loaded";
 }
 
 export interface WidgetConversationSettings {
@@ -30,7 +25,6 @@ export interface WidgetConversationSettings {
 }
 
 export interface WidgetFeatureSettings {
-  acceptMediaFiles: boolean;
   endUserDomAccess: boolean;
 }
 
@@ -42,7 +36,7 @@ export interface WidgetSuggestion {
 export interface CreateWidgetData {
   _id?: string;
   displayName: string;
-  backgroundColor: string;
+
   logoUrl: string;
   logoFileKey?: string;
   appearance: WidgetAppearanceSettings;
@@ -55,7 +49,7 @@ export interface CreateWidgetData {
 
 export interface UpdateWidgetData {
   displayName?: string;
-  backgroundColor?: string;
+
   logoUrl?: string;
   appearance?: WidgetAppearanceSettings;
   behavior?: WidgetBehaviorSettings;

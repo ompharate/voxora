@@ -3,7 +3,7 @@ import { EmbeddingProvider } from "./types";
 
 export class GeminiEmbeddingProvider implements EmbeddingProvider {
   readonly name = "gemini";
-  /** gemini-embedding-001 outputs 3072-dimensional vectors */
+   
   readonly dimensions = 3072;
 
   private ai: GoogleGenAI;

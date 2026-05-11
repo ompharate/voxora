@@ -25,12 +25,12 @@ export function RolesPage() {
       color: "text-blue-500",
       bgClass: "bg-blue-500/10 border-blue-500/20",
       description:
-        "Administrative access to run the support team. Can manage teams, view analytics, and adjust workflow settings.",
+        "Administrative access to run the support team. Can view analytics and adjust workflow settings.",
       permissions: [
         "Manage Organization Settings (General)",
         "Invite & Remove Agents",
         "Change Agent Roles (cannot modify Owners)",
-        "Create & Manage Teams",
+
         "Configure Widget & Flow",
         "Access All Chats & Analytics",
       ],
@@ -45,8 +45,8 @@ export function RolesPage() {
       permissions: [
         "View and respond to assigned Conversations",
         "Manage personal Profile & Preferences",
-        "Transfer chats to other available Agents or Teams",
-        "View basic team statistics",
+        "Transfer chats to other available Agents",
+        "View basic organization statistics",
       ],
     },
   ];

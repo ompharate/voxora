@@ -3,7 +3,7 @@ import { Tool, ToolExecutionContext } from "../../../modules/agents/agent.types"
 export interface LLMMessage {
   role: "system" | "user" | "assistant" | "tool";
   content: string;
-  name?: string; // For role = 'tool'
+  name?: string; 
 }
 
 export interface LLMOptions {
@@ -16,7 +16,7 @@ export interface LLMOptions {
 }
 
 export interface LLMProvider {
-  /** Unique identifier for this provider, e.g. "gemini", "openai", "anthropic" */
+   
   readonly name: string;
   generate(messages: LLMMessage[], options?: LLMOptions): Promise<string>;
 }

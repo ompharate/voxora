@@ -4,8 +4,6 @@ import type {
   ConversationsResponse,
   RouteResponse,
   StatusResponse,
-  TeamAgentsResponse,
-  TeamsResponse,
   VisitorUpdateResponse,
 } from "../types/types";
 
@@ -46,7 +44,7 @@ class ConversationsApi {
 
   async routeConversation(
     conversationId: string,
-    payload: { teamId?: string; agentId?: string; reason?: string },
+    payload: { agentId?: string; reason?: string },
   ): Promise<RouteResponse> {
     return apiClient.post<RouteResponse>(
       `/conversations/${conversationId}/route`,
@@ -54,15 +52,7 @@ class ConversationsApi {
     );
   }
 
-  async getTeams(): Promise<TeamsResponse> {
-    return apiClient.get<TeamsResponse>("/agent/teams/all");
-  }
 
-  async getTeamAgents(teamId: string): Promise<TeamAgentsResponse> {
-    return apiClient.get<TeamAgentsResponse>(
-      `/agent/teams/${teamId}/all-members`,
-    );
-  }
 }
 
 export const conversationsApi = new ConversationsApi();

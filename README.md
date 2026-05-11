@@ -3,7 +3,7 @@
 <p align="center">⭐️ Help us grow - Star us on GitHub! ⭐️</p>
 
 <p align="center">
-  <a href="https://voxora.cloud">
+  <a href="https://interaOne.com">
     <img width="120" alt="Open Source Customer Support Automation" src="https://avatars.githubusercontent.com/u/222506196?s=200&v=4">
   </a>
 </p>
@@ -13,15 +13,15 @@
 <p align="center">
   Open Source End-to-End Customer Support Automation
   <br />
-  <a href="https://voxora.cloud/">Website</a> · 
-  <a href="https://github.com/voxora-cloud/voxora/issues">Report Bug</a> · 
-  <a href="https://github.com/voxora-cloud/voxora/issues">Request Feature</a>
+  <a href="https://interaOne.com/">Website</a> · 
+  <a href="https://github.com/interaOne-com/interaOne/issues">Report Bug</a> · 
+  <a href="https://github.com/interaOne-com/interaOne/issues">Request Feature</a>
 </p>
 
 
 ## ✨ About InteraOne
 
-<!-- <img width="1895" height="969" alt="Voxora Customer Support Platform" src="https://github.com/user-attachments/assets/7060ece4-0308-4b94-9d47-9f1655244a6e" /> -->
+<!-- <img width="1895" height="969" alt="interaOne Customer Support Platform" src="https://github.com/user-attachments/assets/7060ece4-0308-4b94-9d47-9f1655244a6e" /> -->
 <img width="1536" height="1024" alt="ChatGPT Image Apr 27, 2026, 09_46_02 AM" src="https://github.com/user-attachments/assets/5766832d-8482-4db9-bbd0-130f4b3f32b0" />
 <hr/>
 ✨ InteraOne is an open-source platform built to automate the entire customer support lifecycle. <br/>
@@ -41,8 +41,8 @@ Fork this repository to your GitHub account.
 ### 2. Clone Your Fork
 
 ```bash
-git clone https://github.com/<your-username>/voxora.git
-cd voxora
+git clone https://github.com/<your-username>/interaOne.git
+cd interaOne
 ```
 
 ---

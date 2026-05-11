@@ -16,18 +16,14 @@ import {
 } from "@/domains/widget/components";
 
 const CDN_URL =
-  import.meta.env.VITE_CDN_URL ||
-  "http://localhost:9001/voxora-widget/v1/voxora.js";
+  import.meta.env.VITE_WIDGET_URL ||
+  "http://localhost:9001/interaone-widget/v1/InteraOne.js";
 
 const DEFAULT_WIDGET_FORM_DATA: CreateWidgetData = {
   displayName: "",
-  backgroundColor: "#10b981",
   logoUrl: "",
   appearance: {
-    primaryColor: "#10b981",
-    textColor: "#ffffff",
-    position: "bottom-right",
-    launcherText: "Chat with us",
+    theme: "dark",
     welcomeMessage: "Hi there! How can we help you today?",
     logoUrl: "",
   },
@@ -40,8 +36,6 @@ const DEFAULT_WIDGET_FORM_DATA: CreateWidgetData = {
     enabled: true,
     model: "gpt-4o-mini",
     fallbackToAgent: true,
-    autoAssign: true,
-    assignmentStrategy: "least-loaded",
   },
   conversation: {
     collectUserInfo: {
@@ -51,7 +45,6 @@ const DEFAULT_WIDGET_FORM_DATA: CreateWidgetData = {
     },
   },
   features: {
-    acceptMediaFiles: true,
     endUserDomAccess: false,
   },
   suggestions: [
@@ -72,10 +65,6 @@ function withWidgetDefaults(data: Partial<CreateWidgetData> | null | undefined):
       ...DEFAULT_WIDGET_FORM_DATA.appearance,
       ...data.appearance,
       logoUrl: data.appearance?.logoUrl || data.logoUrl || "",
-      primaryColor:
-        data.appearance?.primaryColor ||
-        data.backgroundColor ||
-        DEFAULT_WIDGET_FORM_DATA.appearance.primaryColor,
     },
     behavior: {
       ...DEFAULT_WIDGET_FORM_DATA.behavior,
@@ -109,7 +98,6 @@ export function WidgetPage() {
   const [savedLogoUrl, setSavedLogoUrl] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<{
     displayName?: string;
-    backgroundColor?: string;
   }>({});
   const [formData, setFormData] = useState<CreateWidgetData>(
     DEFAULT_WIDGET_FORM_DATA,
@@ -124,9 +112,7 @@ export function WidgetPage() {
       appearance:
         field === "logoUrl"
           ? { ...prev.appearance, logoUrl: value }
-          : field === "backgroundColor"
-            ? { ...prev.appearance, primaryColor: value }
-            : prev.appearance,
+          : prev.appearance,
     }));
 
     if (validationErrors[field as keyof typeof validationErrors]) {
@@ -184,13 +170,12 @@ export function WidgetPage() {
 
     const validation = validateWidgetForm(
       formData.displayName,
-      formData.backgroundColor,
     );
 
     if (!validation.isValid) {
-      const errors: { displayName?: string; backgroundColor?: string } = {};
+      const errors: { displayName?: string } = {};
       validation.errors.forEach((error) => {
-        if (error.field === "displayName" || error.field === "backgroundColor") {
+        if (error.field === "displayName") {
           errors[error.field] = error.message;
         }
       });
@@ -204,12 +189,10 @@ export function WidgetPage() {
     try {
       const widgetData = {
         displayName: formData.displayName,
-        backgroundColor: formData.backgroundColor,
         logoUrl: formData.logoUrl || "",
         appearance: {
           ...formData.appearance,
           logoUrl: formData.logoUrl || formData.appearance.logoUrl || "",
-          primaryColor: formData.appearance.primaryColor || formData.backgroundColor,
         },
         behavior: formData.behavior,
         ai: formData.ai,
@@ -263,7 +246,7 @@ export function WidgetPage() {
 
   const handleCopyInstallCode = () => {
     const publicKey = isExistingWidget ? formData._id : "your-widget-key";
-    const code = `<script src="${CDN_URL}" data-voxora-public-key="${publicKey}" async></script>`;
+    const code = `<script src="${CDN_URL}" data-InteraOne-public-key="${publicKey}" async></script>`;
     navigator.clipboard.writeText(code);
     setIsCopied(true);
     toast.success("Code copied to clipboard!");

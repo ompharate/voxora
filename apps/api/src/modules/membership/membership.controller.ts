@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from "@shared/middleware";
 import { sendResponse, sendError } from "@shared/utils/response";
 import { MembershipRole } from "@shared/models";
 import { generateTokens } from "@shared/utils/auth";
+import config from "@shared/config";
 
 export class MembershipController {
     static async listMembers(req: Request, res: Response): Promise<void> {
@@ -19,19 +20,18 @@ export class MembershipController {
     static async inviteMember(req: Request, res: Response): Promise<void> {
         try {
             const { userId, activeOrganizationId } = (req as AuthenticatedRequest).user;
-            const { email, name, role, teamIds, password } = req.body;
+            const { email, name, role, password } = req.body;
 
             const result = await MembershipService.inviteMember(userId, activeOrganizationId, {
                 email,
                 name,
                 role: role as MembershipRole,
-                teamIds,
                 password,
             });
 
-            const inviteLink = !result.emailSent
-              ? `${process.env.CLIENT_URL}/accept-invite?token=${result.inviteToken}`
-              : undefined;
+                        const inviteLink = !result.emailSent
+                            ? `${config.app.clientUrl}/accept-invite?token=${result.inviteToken}`
+                            : undefined;
 
             sendResponse(res, 201, true,
               result.emailSent ? "Invitation sent" : "Member created — share the invite link manually (email is not configured)",
@@ -92,9 +92,9 @@ export class MembershipController {
 
             const result = await MembershipService.resendInvite(activeOrganizationId, resolvedMemberId);
 
-            const inviteLink = !result.emailSent
-              ? `${process.env.CLIENT_URL}/accept-invite?token=${result.inviteToken}`
-              : undefined;
+                        const inviteLink = !result.emailSent
+                            ? `${config.app.clientUrl}/accept-invite?token=${result.inviteToken}`
+                            : undefined;
 
             sendResponse(res, 200, true,
               result.emailSent ? "Invitation resent successfully" : "Invite renewed — share the link manually (email is not configured)",

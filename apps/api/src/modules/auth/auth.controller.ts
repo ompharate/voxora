@@ -27,7 +27,7 @@ export const adminSignup = asyncHandler(async (req: Request, res: Response) => {
     return sendError(res, result.statusCode || 400, result.message || "Signup failed");
   }
 
-  sendResponse(res, 201, true, "Voxora setup completed successfully", result.data);
+  sendResponse(res, 201, true, "InteraOne setup completed successfully", result.data);
 });
 
 // ─── Login ────────────────────────────────────────────────────────────────────

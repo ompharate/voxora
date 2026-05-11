@@ -11,7 +11,7 @@ export interface Agent {
     isActive?: boolean;
   };
   role: "admin" | "agent";
-  teams: Array<{ _id: string; name: string; color?: string }>;
+
   status: "online" | "offline" | "busy";
   avatar?: string;
   lastSeen: Date;
@@ -25,7 +25,7 @@ export interface InviteAgentData {
   name: string;
   email: string;
   role: "agent";
-  teamIds: string[];
+
   permissions?: string[];
   password?: string;
 }
@@ -34,7 +34,7 @@ export interface UpdateAgentData {
   name?: string;
   email?: string;
   role?: "agent";
-  teamIds?: string[];
+
   permissions?: string[];
 }
 
@@ -42,7 +42,7 @@ export interface AgentFormData {
   name: string;
   email: string;
   role: "agent";
-  teamIds: string[];
+
   password?: string;
 }
 

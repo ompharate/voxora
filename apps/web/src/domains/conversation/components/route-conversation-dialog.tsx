@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,8 @@ import {
 import { Textarea } from "@/shared/ui/textarea";
 import { UserPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useRouteConversation, useTeamAgents, useTeams } from "../hooks";
+import { useRouteConversation } from "../hooks";
+import { useAgents } from "@/domains/agent/hooks";
 
 interface RouteConversationDialogProps {
   conversationId: string;
@@ -32,23 +33,17 @@ export function RouteConversationDialog({
   onRouted,
 }: RouteConversationDialogProps) {
   const [open, setOpen] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState("");
   const [selectedAgent, setSelectedAgent] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
-  const { data: teams = [] } = useTeams(open);
-  const { data: agents = [], isLoading: isAgentsLoading } = useTeamAgents(selectedTeam);
+  const { data: agents = [], isLoading: isAgentsLoading } = useAgents();
   const routeMutation = useRouteConversation();
 
-  useEffect(() => {
-    if (!selectedTeam) {
-      setSelectedAgent("");
-    }
-  }, [selectedTeam]);
+
 
   const handleRoute = async () => {
-    if (!selectedTeam && !selectedAgent) {
-      toast.error("Please select a team or agent");
+    if (!selectedAgent) {
+      toast.error("Please select an agent");
       return;
     }
 
@@ -56,7 +51,6 @@ export function RouteConversationDialog({
     try {
       const response = await routeMutation.mutateAsync({
         conversationId,
-        teamId: selectedTeam || undefined,
         agentId:
           selectedAgent && selectedAgent !== "auto-assign"
             ? selectedAgent
@@ -64,7 +58,7 @@ export function RouteConversationDialog({
         reason: reason || undefined,
       });
 
-      toast.success(`Conversation routed to ${response.data.agentName || "team"}`);
+      toast.success(`Conversation routed to ${response.data.agentName || "agent"}`);
       setOpen(false);
       onRouted?.();
     } catch (error: any) {
@@ -86,32 +80,16 @@ export function RouteConversationDialog({
         <DialogHeader>
           <DialogTitle>Route Conversation</DialogTitle>
           <DialogDescription>
-            Transfer this conversation to another team or agent
+            Transfer this conversation to another agent
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="team">Team</Label>
-            <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-              <SelectTrigger id="team" className="cursor-pointer">
-                <SelectValue placeholder="Select team" />
-              </SelectTrigger>
-              <SelectContent>
-                {teams.map((team) => (
-                  <SelectItem key={team._id} value={team._id}>
-                    {team.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="agent">Agent (Optional)</Label>
+            <Label htmlFor="agent">Agent</Label>
             <Select
               value={selectedAgent}
               onValueChange={setSelectedAgent}
-              disabled={!selectedTeam || isAgentsLoading}
+              disabled={isAgentsLoading}
             >
               <SelectTrigger id="agent" className="cursor-pointer">
                 <SelectValue
@@ -119,10 +97,10 @@ export function RouteConversationDialog({
                 />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="auto-assign">Auto-assign</SelectItem>
-                {agents.map((agent) => (
-                  <SelectItem key={agent._id} value={agent._id}>
-                    {agent.name} ({agent.email})
+                <SelectItem value="auto-assign">Auto-assign (least busy)</SelectItem>
+                {agents.map((agent: any) => (
+                  <SelectItem key={agent.user._id} value={agent.user._id}>
+                    {agent.user.name} ({agent.user.email})
                   </SelectItem>
                 ))}
               </SelectContent>

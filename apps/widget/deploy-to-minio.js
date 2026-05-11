@@ -16,12 +16,19 @@ const minioConfig = {
   secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
 };
 
-const BUCKET_NAME = 'voxora-widget';
+const BUCKET_NAME = 'interaone-widget';
 const WIDGET_VERSION = 'v1';
 
 const minioClient = new Minio.Client(minioConfig);
 
+function assertValidBucketName(bucketName) {
+  if (!/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucketName)) {
+    throw new Error(`Invalid MinIO bucket name: ${bucketName}. Use lowercase letters, numbers, dots, or hyphens only.`);
+  }
+}
+
 async function ensureBucketExists() {
+  assertValidBucketName(BUCKET_NAME);
   const exists = await minioClient.bucketExists(BUCKET_NAME);
   if (!exists) {
     await minioClient.makeBucket(BUCKET_NAME, 'us-east-1');
@@ -98,13 +105,13 @@ async function uploadFile(localPath, remotePath) {
   const contentType = getContentType(localPath);
   const fileStream = fs.createReadStream(localPath);
   const fileStat = fs.statSync(localPath);
-  
+
   const metadata = {
     'Content-Type': contentType,
     'Cache-Control': getCacheControl(localPath),
     'Cross-Origin-Resource-Policy': 'cross-origin',
   };
-  
+
   await minioClient.putObject(BUCKET_NAME, remotePath, fileStream, fileStat.size, metadata);
   console.log(`✅ Uploaded ${remotePath}`);
 }
@@ -115,7 +122,7 @@ async function uploadDir(localDirPath, remoteDirPrefix) {
     const fullPath = path.join(localDirPath, file);
     const stat = fs.statSync(fullPath);
     const remotePath = `${remoteDirPrefix}/${file}`;
-    
+
     if (stat.isDirectory()) {
       await uploadDir(fullPath, remotePath);
     } else {
@@ -127,25 +134,25 @@ async function uploadDir(localDirPath, remoteDirPrefix) {
 async function deployWidget() {
   try {
     console.log('🚀 Starting widget deployment to MinIO...\n');
-    
+
     await ensureBucketExists();
     await setBucketPolicy();
     await setCorsPolicy();
-    
+
     const distPath = path.join(__dirname, 'dist');
     if (!fs.existsSync(distPath)) {
       throw new Error('Widget build not found! Run `npm run build` first.');
     }
-    
+
     await uploadDir(distPath, WIDGET_VERSION);
-    
+
     const protocol = minioConfig.useSSL ? 'https' : 'http';
     const port = minioConfig.port === (minioConfig.useSSL ? 443 : 80) ? '' : `:${minioConfig.port}`;
-    const widgetUrl = `${protocol}://${minioConfig.endPoint}${port}/${BUCKET_NAME}/${WIDGET_VERSION}/voxora.js`;
-    
+    const widgetUrl = `${protocol}://${minioConfig.endPoint}${port}/${BUCKET_NAME}/${WIDGET_VERSION}/InteraOne.js`;
+
     console.log('\n✨ Deployment complete!');
     console.log(`   Loader: ${widgetUrl}`);
-    
+
   } catch (error) {
     console.error('❌ Deployment failed:', error);
     process.exit(1);

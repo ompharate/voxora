@@ -1,6 +1,6 @@
 import { Tool } from "../agent.types";
 
-// ─── Tool registry ────────────────────────────────────────────────────────────
+
 const registry = new Map<string, Tool>();
 
 export function registerTool(tool: Tool): void {
@@ -21,9 +21,11 @@ export function getAllTools(): Tool[] {
 import { RewriteAndThinkTool } from "./rewrite-and-think.tool";
 import { WebCrawlTool } from "./web-crawl.tool";
 import { UpdateContactProfileTool } from "./update-contact-profile.tool";
+import { MarkQueryResolvedTool } from "./mark-query-resolved.tool";
 
 registerTool(new RewriteAndThinkTool());
 registerTool(new WebCrawlTool());
 registerTool(new UpdateContactProfileTool());
+registerTool(new MarkQueryResolvedTool());
 
 export type { Tool, ToolParameterSchema } from "../agent.types";

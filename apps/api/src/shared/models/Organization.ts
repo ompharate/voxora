@@ -7,12 +7,7 @@ export interface IOrganization extends Document {
   plan: "free" | "pro" | "proplus" | "enterprise";
   logoUrl?: string;
   whiteLabelEnabled: boolean;
-  emailSender?: {
-    fromEmail?: string;
-    fromName?: string;
-    domain?: string;
-    verified: boolean;
-  };
+
   /** Separate billing contact email (can differ from owner account email) */
   billingEmail?: string;
   /** Current Dodo subscription status */
@@ -55,12 +50,7 @@ const organizationSchema = new Schema<IOrganization>(
     cancelAtPeriodEnd: { type: Boolean, default: false },
     logoUrl: { type: String, default: null },
     whiteLabelEnabled: { type: Boolean, default: false },
-    emailSender: {
-      fromEmail: { type: String, trim: true, lowercase: true },
-      fromName: { type: String, trim: true, maxlength: 120 },
-      domain: { type: String, trim: true, lowercase: true },
-      verified: { type: Boolean, default: false },
-    },
+
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },

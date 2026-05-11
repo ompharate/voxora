@@ -56,7 +56,7 @@ export function WhiteLabelPage() {
                 checked={removeBranding}
                 onChange={(event) => setRemoveBranding(event.target.checked)}
               />
-              Remove Voxora branding from customer-facing surfaces
+              Remove InteraOne branding from customer-facing surfaces
             </label>
             <Button onClick={save} className="cursor-pointer" disabled={saving}>
               {saving ? "Saving..." : "Save"}

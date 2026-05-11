@@ -22,6 +22,8 @@ import { knowledgeRouter } from "@modules/knowledge";
 import { organizationRouter } from "@modules/organization";
 import { membershipRouter } from "@modules/membership";
 import { contactsRouter } from "@modules/contacts";
+import { notificationRouter } from "@modules/notification";
+import { analyticsRouter } from "@modules/analytics/analytics.routes";
 
 class Application {
   private app: express.Application;
@@ -90,6 +92,8 @@ class Application {
     router.use("/storage", storageRouter);
     router.use("/knowledge", knowledgeRouter);
     router.use("/contacts", contactsRouter);
+    router.use("/notifications", notificationRouter);
+    router.use("/analytics", analyticsRouter);
 
     // Health check
     router.get("/health", (req, res) => {
@@ -107,7 +111,7 @@ class Application {
     this.app.get("/", (req, res) => {
       res.json({
         success: true,
-        message: "Voxora API",
+        message: "InteraOne API",
         version: "1.0.0",
         timestamp: new Date().toISOString(),
       });
@@ -150,12 +154,10 @@ class Application {
       this.server.listen(config.app.port, "0.0.0.0", () => {
         logger.info(`🚀 Server running on port ${config.app.port}`);
         logger.info(`📱 Environment: ${config.app.env}`);
-        logger.info(`🔗 API URL: ${config.app.apiUrl}`);
         logger.info(`🔌 Socket.IO: Ready`);
         logger.info(`💾 MongoDB: Connected`);
         logger.info(`📮 Redis: Connected`);
         logger.info(`📦 MinIO: Initializing...`);
-        logger.info(`⚡ AI Stream: Starting...`);
       });
 
       // Graceful shutdown

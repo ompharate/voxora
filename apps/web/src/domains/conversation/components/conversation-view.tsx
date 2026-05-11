@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/shared/ui/dialog";
 import { useAuth } from "@/domains/auth/hooks";
-import { MoreVertical, Send, Paperclip, ArrowLeft, Clock, User } from "lucide-react";
+import { MoreVertical, Send, ArrowLeft, Clock, User } from "lucide-react";
 import { useNavigate } from "react-router";
 import io, { Socket } from "socket.io-client";
 import { RouteConversationDialog } from "./route-conversation-dialog";
@@ -37,7 +37,6 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [updateForm, setUpdateForm] = useState({ name: "", email: "" });
   const [isUpdating, setIsUpdating] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const customerTypingHideRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -309,68 +308,6 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
     return <p className="text-sm whitespace-pre-wrap">{message.content}</p>;
   };
 
-  const sendFileMessage = async (file: File) => {
-    if (!socket) return;
-    const maxBytes = 10 * 1024 * 1024;
-    if (file.size > maxBytes) {
-      alert("File too large (max 10 MB)");
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-    try {
-      const urlResp = await fetch(`${API_URL}/storage/conversation-upload`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ fileName: file.name, mimeType: file.type }),
-      });
-
-      if (!urlResp.ok) throw new Error("Failed to get upload URL");
-      const { data } = await urlResp.json();
-
-      const putResp = await fetch(data.uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
-      });
-      if (!putResp.ok) throw new Error("Storage upload failed");
-
-      const fileContent = JSON.stringify({
-        fileName: file.name,
-        fileSize: file.size,
-        mimeType: file.type,
-        fileKey: data.fileKey,
-        downloadUrl: data.downloadUrl || null,
-      });
-      const msgType = file.type.startsWith("image/") ? "image" : "file";
-      const messageData = {
-        conversationId,
-        content: fileContent,
-        type: msgType,
-        metadata: {
-          senderName: user?.name || "Agent",
-          senderEmail: user?.email || "",
-          source: "web",
-        },
-      };
-      socket.emit("send_message", messageData);
-
-      const tempMessage: ConversationMessage = {
-        _id: `temp-${Date.now()}`,
-        senderId: user?.id || "agent",
-        content: fileContent,
-        type: msgType,
-        metadata: messageData.metadata,
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, tempMessage]);
-    } catch (err: any) {
-      alert(`File upload failed: ${err?.message || "Unknown error"}`);
-    }
-  };
 
   const handleUpdateCustomerInfo = async () => {
     if (!updateForm.name.trim() && !updateForm.email.trim()) {
@@ -636,28 +573,6 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
             disabled={isLoading}
           />
           <div className="flex flex-col space-y-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept="image/*,.pdf,.doc,.docx,.txt"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  sendFileMessage(file);
-                  e.target.value = "";
-                }
-              }}
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => fileInputRef.current?.click()}
-              title="Attach file"
-              className="cursor-pointer"
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
             <Button
               onClick={sendMessage}
               disabled={!newMessage.trim() || isLoading}

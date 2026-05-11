@@ -10,7 +10,6 @@ import {
   Zap,
   Building2,
   MessageSquare,
-  Users,
   UserCheck,
   BookUser,
   ArrowRight,
@@ -39,7 +38,7 @@ type PlanDefinition = {
   priceMonthlyUsd: number;
   summary: string;
   features: string[];
-  limits: Record<"messages" | "teams" | "humanAgents" | "contacts", number | null>;
+  limits: Record<"messages" | "humanAgents" | "contacts", number | null>;
 };
 
 type EntitlementsResponse = {
@@ -76,35 +75,35 @@ const FALLBACK_PLANS: PlanDefinition[] = [
     plan: "free",
     priceMonthlyUsd: 0,
     summary: "Starter plan for small support workflows.",
-    features: ["Everything in OSS core", "Voxora branding", "Community support"],
-    limits: { messages: 50, teams: 1, humanAgents: 2, contacts: 10 },
+    features: ["Everything in OSS core", "InteraOne branding", "Community support"],
+    limits: { messages: 50, humanAgents: 2, contacts: 10 },
   },
   {
     plan: "pro",
     priceMonthlyUsd: 10,
     summary: "Built for growing support teams.",
-    features: ["Voxora branding", "Standard email support", "Advanced analytics", "API access"],
-    limits: { messages: 500, teams: 2, humanAgents: 5, contacts: 500 },
+    features: ["InteraOne branding", "Standard email support", "Advanced analytics", "API access"],
+    limits: { messages: 500, humanAgents: 5, contacts: 500 },
   },
   {
     plan: "proplus",
     priceMonthlyUsd: 39,
     summary: "High-volume plan for fast scaling teams.",
-    features: ["Voxora branding", "Priority support", "Custom integrations", "SLA guarantee", "Audit logs"],
-    limits: { messages: 5000, teams: 10, humanAgents: 50, contacts: 5000 },
+    features: ["InteraOne branding", "Priority support", "Custom integrations", "SLA guarantee", "Audit logs"],
+    limits: { messages: 5000, humanAgents: 50, contacts: 5000 },
   },
   {
     plan: "enterprise",
     priceMonthlyUsd: 0,
     summary: "Custom unlimited plan for enterprise customers.",
     features: [
-      "No Voxora branding",
+      "No InteraOne branding",
       "Everything unlimited",
       "Custom contract and onboarding",
       "Dedicated SLA",
       "SSO & SAML",
     ],
-    limits: { messages: null, teams: null, humanAgents: null, contacts: null },
+    limits: { messages: null, humanAgents: null, contacts: null },
   },
 ];
 
@@ -151,15 +150,15 @@ const planDisplayName: Record<PlanTier, string> = {
 };
 
 const limitItems: {
-  key: "messages" | "teams" | "humanAgents" | "contacts";
+  key: "messages" | "humanAgents" | "contacts";
   label: string;
   icon: React.ReactNode;
 }[] = [
-  { key: "messages", label: "Messages/month", icon: <MessageSquare className="h-3.5 w-3.5" /> },
-  { key: "teams", label: "Teams", icon: <Users className="h-3.5 w-3.5" /> },
-  { key: "humanAgents", label: "Human agents", icon: <UserCheck className="h-3.5 w-3.5" /> },
-  { key: "contacts", label: "Contacts", icon: <BookUser className="h-3.5 w-3.5" /> },
-];
+    { key: "messages", label: "Messages/month", icon: <MessageSquare className="h-3.5 w-3.5" /> },
+
+    { key: "humanAgents", label: "Human agents", icon: <UserCheck className="h-3.5 w-3.5" /> },
+    { key: "contacts", label: "Contacts", icon: <BookUser className="h-3.5 w-3.5" /> },
+  ];
 
 // ─── Self-hosted banner ───────────────────────────────────────────────────────
 
@@ -178,7 +177,7 @@ function SelfHostedBanner({
         <div className="flex-1">
           <p className="font-semibold">Self-hosted deployment — all features unlocked</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            You are running Voxora on your own infrastructure. All OSS core features are available
+            You are running InteraOne on your own infrastructure. All OSS core features are available
             without limits. Billing and paid EE features do not apply to self-hosted deployments.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -229,7 +228,7 @@ function SelfHostedBanner({
           license. Contact us to learn more.
         </p>
         <a
-          href="mailto:sales@voxora.cloud?subject=Voxora%20EE%20Self-hosted%20License"
+          href="mailto:sales@InteraOne.cloud?subject=InteraOne%20EE%20Self-hosted%20License"
           className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline underline-offset-2"
         >
           Contact sales about EE licensing
@@ -267,13 +266,12 @@ function PlanCard({ plan, isPopular, canBuy, loading, selectedPlan, onUpgrade }:
       )}
 
       <Card
-        className={`relative flex flex-col h-full transition-all duration-200 ${
-          !canBuy
-            ? "opacity-60 grayscale-[30%]"
-            : isPopular
+        className={`relative flex flex-col h-full transition-all duration-200 ${!canBuy
+          ? "opacity-60 grayscale-[30%]"
+          : isPopular
             ? "ring-1 ring-primary/40 shadow-sm hover:shadow-md hover:ring-primary/60"
             : "hover:shadow-sm hover:ring-foreground/20"
-        }`}
+          }`}
       >
         {/* Locked overlay indicator */}
         {!canBuy && (
@@ -338,13 +336,11 @@ function PlanCard({ plan, isPopular, canBuy, loading, selectedPlan, onUpgrade }:
             {isUpgradeable && (
               <Button
                 onClick={() => canBuy && onUpgrade(plan.plan as PaidPlan)}
-                className={`group w-full transition-all ${
-                  canBuy ? "cursor-pointer" : "cursor-not-allowed"
-                } ${
-                  plan.plan === "proplus"
+                className={`group w-full transition-all ${canBuy ? "cursor-pointer" : "cursor-not-allowed"
+                  } ${plan.plan === "proplus"
                     ? "border-amber-500/40 bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:text-white dark:text-amber-400 dark:hover:text-white"
                     : ""
-                }`}
+                  }`}
                 variant={plan.plan === "proplus" ? "outline" : "default"}
                 disabled={!canBuy || loading}
               >
@@ -375,7 +371,7 @@ function PlanCard({ plan, isPopular, canBuy, loading, selectedPlan, onUpgrade }:
               <Button
                 onClick={() => {
                   window.location.href =
-                    "mailto:sales@voxora.cloud?subject=Voxora%20Enterprise%20Plan";
+                    "mailto:sales@InteraOne.cloud?subject=InteraOne%20Enterprise%20Plan";
                 }}
                 className="group w-full cursor-pointer"
                 variant="outline"
@@ -570,7 +566,7 @@ export function BillingPage() {
               { key: "messages", label: "Messages", icon: <MessageSquare className="h-3 w-3" /> },
               { key: "humanAgents", label: "Human agents", icon: <UserCheck className="h-3 w-3" /> },
               { key: "contacts", label: "Contacts", icon: <BookUser className="h-3 w-3" /> },
-              { key: "teams", label: "Teams", icon: <Users className="h-3 w-3" /> },
+
             ] as { key: string; label: string; icon: React.ReactNode }[]).map(({ key, label, icon }) => {
               const stat = usageSnapshot.usage[key];
               if (!stat) return null;
@@ -579,14 +575,14 @@ export function BillingPage() {
                 pct >= 100
                   ? "bg-destructive"
                   : pct >= 80
-                  ? "bg-amber-500"
-                  : "bg-primary";
+                    ? "bg-amber-500"
+                    : "bg-primary";
               const textColor =
                 pct >= 100
                   ? "text-destructive"
                   : pct >= 80
-                  ? "text-amber-500"
-                  : "text-muted-foreground";
+                    ? "text-amber-500"
+                    : "text-muted-foreground";
               return (
                 <div key={key} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
@@ -630,13 +626,12 @@ export function BillingPage() {
           </div>
 
           <div
-            className={`grid gap-4 ${
-              plansForGrid.length === 1
-                ? "sm:grid-cols-1 max-w-xs"
-                : plansForGrid.length === 2
+            className={`grid gap-4 ${plansForGrid.length === 1
+              ? "sm:grid-cols-1 max-w-xs"
+              : plansForGrid.length === 2
                 ? "sm:grid-cols-2 max-w-xl"
                 : "sm:grid-cols-2 xl:grid-cols-3"
-            }`}
+              }`}
           >
             {plansForGrid.map((plan) => (
               <PlanCard

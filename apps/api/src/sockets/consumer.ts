@@ -1,12 +1,12 @@
 import { redisClient } from "@shared/config/redis";
-import { Conversation, Message, Team, Membership } from "@shared/models";
+import { Conversation, Message, Membership } from "@shared/models";
 import { incrementMessageUsage } from "@shared/middleware";
+import { tracker } from "@shared/utils/tracker";
 import logger from "@shared/utils/logger";
 import type SocketManager from "@sockets/index";
 
 const PUBSUB_CHANNEL = "ai:response";
 const ESCALATION_CHANNEL = "ai:escalation";
-const RESOLUTION_CHANNEL = "ai:resolution";
 
 // ── Agent-finder helper (org-scoped via Membership) ────────────────────────────
 
@@ -14,14 +14,12 @@ interface AgentAssignment {
   agentId: string;
   agentName: string;
   agentEmail: string;
-  teamId: string;
 }
 
-async function findBestAgent(organizationId: string, preferredTeamId: string | null): Promise<AgentAssignment | null> {
-  // Helper: pick the least-busy online/away member from a set of memberships
+async function findBestAgent(organizationId: string): Promise<AgentAssignment | null> {
   async function pickLeastBusy(
-    memberships: Array<{ userId: any; teams: any[] }>,
-  ): Promise<{ userId: any; name: string; email: string; teamId: string } | null> {
+    memberships: Array<{ userId: any }>,
+  ): Promise<{ userId: any; name: string; email: string } | null> {
     if (memberships.length === 0) return null;
     const withLoad = await Promise.all(
       memberships.map(async (m) => {
@@ -31,13 +29,12 @@ async function findBestAgent(organizationId: string, preferredTeamId: string | n
           assignedTo: user._id,
           status: { $in: ["active", "open"] },
         });
-        return { user, load, teams: m.teams };
+        return { user, load };
       }),
     );
     withLoad.sort((x, y) => x.load - y.load);
     const best = withLoad[0];
-    const teamId = preferredTeamId || best.teams?.[0]?.toString() || "";
-    return { userId: best.user._id, name: best.user.name, email: best.user.email, teamId };
+    return { userId: best.user._id, name: best.user.name, email: best.user.email };
   }
 
   const onlineStatuses = ["online", "away"];
@@ -49,13 +46,8 @@ async function findBestAgent(organizationId: string, preferredTeamId: string | n
     .then((ms) => ms.filter((m) => (m.userId as any)?.isActive && onlineStatuses.includes((m.userId as any)?.status)));
 
   if (agentCandidates.length > 0) {
-    // Prefer agents on the preferred team first
-    const teamAgents = preferredTeamId
-      ? agentCandidates.filter((m) => m.teams?.map(String).includes(preferredTeamId))
-      : [];
-    const pool = teamAgents.length > 0 ? teamAgents : agentCandidates;
-    const pick = await pickLeastBusy(pool as any);
-    if (pick) return { agentId: pick.userId.toString(), agentName: pick.name, agentEmail: pick.email, teamId: pick.teamId };
+    const pick = await pickLeastBusy(agentCandidates as any);
+    if (pick) return { agentId: pick.userId.toString(), agentName: pick.name, agentEmail: pick.email };
   }
 
   // ── Step 2: No agents online — check admins ──────────────────────────────────
@@ -65,9 +57,18 @@ async function findBestAgent(organizationId: string, preferredTeamId: string | n
 
   if (adminCandidates.length > 0) {
     const pick = await pickLeastBusy(adminCandidates as any);
-    if (pick) return { agentId: pick.userId.toString(), agentName: pick.name, agentEmail: pick.email, teamId: pick.teamId };
+    if (pick) return { agentId: pick.userId.toString(), agentName: pick.name, agentEmail: pick.email };
   }
 
+  // ── Step 3: No admins online — check owners ──────────────────────────────────
+  const ownerCandidates = await Membership.find({ ...baseFilter, role: "owner" })
+    .populate("userId", "name email status isActive")
+    .then((ms) => ms.filter((m) => (m.userId as any)?.isActive && onlineStatuses.includes((m.userId as any)?.status)));
+
+  if (ownerCandidates.length > 0) {
+    const pick = await pickLeastBusy(ownerCandidates as any);
+    if (pick) return { agentId: pick.userId.toString(), agentName: pick.name, agentEmail: pick.email };
+  }
 
   // ── No one online — do not escalate ─────────────────────────────────────────
   return null;
@@ -112,18 +113,18 @@ export async function startAIResponseConsumer(socketManager: SocketManager): Pro
 
       const organizationId = conv?.organizationId?.toString() || "";
 
-      // ── Message usage tracking ──────────────────────────────────────────────
-      const usageResult = await incrementMessageUsage(organizationId);
-      if (usageResult.blocked) {
-        logger.warn(`[AI Response] Message limit reached for org=${organizationId} (used=${usageResult.used} limit=${usageResult.limit}) — dropping AI response`);
-        socketManager.emitToConversation(conversationId, "limit_reached", {
-          limitType: "messages",
-          currentUsage: usageResult.used,
-          limit: usageResult.limit,
-          upgradeRequired: true,
-        });
-        return;
-      }
+      // // ── Message usage tracking ──────────────────────────────────────────────
+      // const usageResult = await incrementMessageUsage(organizationId);
+      // if (usageResult.blocked) {
+      //   logger.warn(`[AI Response] Message limit reached for org=${organizationId} (used=${usageResult.used} limit=${usageResult.limit}) — dropping AI response`);
+      //   socketManager.emitToConversation(conversationId, "limit_reached", {
+      //     limitType: "messages",
+      //     currentUsage: usageResult.used,
+      //     limit: usageResult.limit,
+      //     upgradeRequired: true,
+      //   });
+      //   return;
+      // }
 
       const msg = new Message({
         conversationId,
@@ -131,9 +132,10 @@ export async function startAIResponseConsumer(socketManager: SocketManager): Pro
         senderId: "ai-bot",
         content,
         type: "text",
-        metadata: { senderName: "AI Assistant", senderEmail: "ai@voxora.internal", source: "ai" },
+        metadata: { senderName: "AI Assistant", senderEmail: "ai@interaone.internal", source: "ai" },
       });
       await msg.save();
+      tracker.trackMessage(organizationId, "ai");
 
       socketManager.emitToConversation(conversationId, "new_message", {
         conversationId,
@@ -182,9 +184,8 @@ export async function startAIResponseConsumer(socketManager: SocketManager): Pro
   // ── AI escalation channel ────────────────────────────────────────────────────
   await subscriber.subscribe(ESCALATION_CHANNEL, async (raw) => {
     try {
-      const { conversationId, teamId, reason, nonce } = JSON.parse(raw) as {
+      const { conversationId, reason, nonce } = JSON.parse(raw) as {
         conversationId: string;
-        teamId: string | null;
         reason: string;
         nonce?: string;
       };
@@ -194,12 +195,12 @@ export async function startAIResponseConsumer(socketManager: SocketManager): Pro
         if (!claimed) return;
       }
 
-      logger.info(`[Escalation] Received for conversation ${conversationId} — reason: "${reason}"`);
-
       const conv = await Conversation.findById(conversationId)
         .select("organizationId status metadata assignedTo")
         .lean();
       if (!conv) return;
+
+      tracker.trackFallback(conv.organizationId.toString(), { reason });
 
       if (
         (conv as any).metadata?.escalatedAt
@@ -213,7 +214,7 @@ export async function startAIResponseConsumer(socketManager: SocketManager): Pro
 
       const organizationId = conv?.organizationId?.toString() || "";
 
-      const assignment = await findBestAgent(organizationId, teamId);
+      const assignment = await findBestAgent(organizationId);
 
       if (!assignment) {
         logger.warn(`[Escalation] No available agents for conversation ${conversationId} — AI continues`);
@@ -223,7 +224,7 @@ export async function startAIResponseConsumer(socketManager: SocketManager): Pro
           senderId: "ai-bot",
           content: "Our support team is currently offline. I'll do my best to help you — please continue and I'll assist you directly.",
           type: "text",
-          metadata: { senderName: "AI Assistant", senderEmail: "ai@voxora.internal", source: "ai" },
+          metadata: { senderName: "AI Assistant", senderEmail: "ai@interaone.internal", source: "ai" },
         });
         await fallbackMsg.save();
         socketManager.emitToConversation(conversationId, "new_message", {
@@ -231,24 +232,9 @@ export async function startAIResponseConsumer(socketManager: SocketManager): Pro
           message: { _id: fallbackMsg._id, senderId: fallbackMsg.senderId, content: fallbackMsg.content, type: fallbackMsg.type, metadata: fallbackMsg.metadata, createdAt: fallbackMsg.createdAt },
         });
 
-        // Mark conversation as pending + flag it for admin inbox "Unassigned" view
-        await Conversation.findByIdAndUpdate(conversationId, {
-          $set: {
-            status: "pending",
-            "metadata.pendingEscalation": true,
-            "metadata.escalatedAt": new Date(),
-            "metadata.escalationReason": reason,
-          },
-        });
-
-        // Notify visitor that they are in the queue
-        socketManager.emitToConversation(conversationId, "status_updated", {
-          conversationId,
-          status: "pending",
-          updatedBy: "system",
-          reason: "No agents available — in queue",
-          timestamp: new Date(),
-        });
+        // If no one is available to escalate to, do NOT update the conversation status.
+        // It stays 'open' and unassigned, so the AI will continue replying.
+        // We do not emit status_updated either, so the widget UI doesn't think it's in a queue.
 
         return;
       }
@@ -257,7 +243,6 @@ export async function startAIResponseConsumer(socketManager: SocketManager): Pro
         $set: {
           status: "open",
           assignedTo: assignment.agentId,
-          "metadata.teamId": assignment.teamId,
           "metadata.escalatedAt": new Date(),
           "metadata.escalationReason": reason,
         },
@@ -278,63 +263,6 @@ export async function startAIResponseConsumer(socketManager: SocketManager): Pro
       logger.info(`[Escalation] Conversation ${conversationId} escalated to agent ${assignment.agentId}`);
     } catch (err) {
       logger.error("[Escalation] Failed to handle escalation:", err);
-    }
-  });
-
-  // ── AI resolution channel ────────────────────────────────────────────────────
-  await subscriber.subscribe(RESOLUTION_CHANNEL, async (raw) => {
-    try {
-      const { conversationId, reason, nonce } = JSON.parse(raw) as {
-        conversationId: string;
-        reason: string;
-        nonce?: string;
-      };
-
-      if (nonce) {
-        const claimed = await redisClient.set(`dedup:${nonce}`, "1", { NX: true, EX: 30 });
-        if (!claimed) return;
-      }
-
-      logger.info(`[Resolution] Received for conversation ${conversationId} — reason: "${reason}"`);
-
-      const conv = await Conversation.findById(conversationId).select("organizationId").lean();
-      const organizationId = conv?.organizationId?.toString() || "";
-
-      const closingMsg = new Message({
-        conversationId,
-        organizationId,
-        senderId: "ai-bot",
-        content: "Glad I could help! 😊 I'm marking this conversation as resolved. If you ever need assistance again, feel free to start a new chat.",
-        type: "text",
-        metadata: { senderName: "AI Assistant", senderEmail: "ai@voxora.internal", source: "ai" },
-      });
-      await closingMsg.save();
-
-      socketManager.emitToConversation(conversationId, "new_message", {
-        conversationId,
-        message: { _id: closingMsg._id, senderId: closingMsg.senderId, content: closingMsg.content, type: closingMsg.type, metadata: closingMsg.metadata, createdAt: closingMsg.createdAt },
-      });
-
-      await Conversation.findByIdAndUpdate(conversationId, {
-        $set: {
-          status: "resolved",
-          "metadata.resolvedAt": new Date(),
-          "metadata.resolvedBy": "ai",
-          "metadata.resolutionReason": reason,
-        },
-      });
-
-      socketManager.emitToConversation(conversationId, "status_updated", {
-        conversationId,
-        status: "resolved",
-        updatedBy: "ai",
-        reason,
-        timestamp: new Date(),
-      });
-
-      logger.info(`[Resolution] Conversation ${conversationId} resolved by AI`);
-    } catch (err) {
-      logger.error("[Resolution] Failed to handle resolution:", err);
     }
   });
 

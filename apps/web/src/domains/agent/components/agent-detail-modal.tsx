@@ -109,29 +109,7 @@ export function AgentDetailModal({ agent, isOpen, onClose }: AgentDetailModalPro
               </div>
             </div>
 
-            <div>
-              <h4 className="font-medium text-foreground mb-2">
-                Teams ({agent.teams?.length || 0})
-              </h4>
-              <div className="space-y-2">
-                {agent.teams && agent.teams.length > 0 ? (
-                  agent.teams.map((team, index) => (
-                    <div
-                      key={team._id || `team-${index}`}
-                      className="flex items-center space-x-2 p-2 rounded"
-                    >
-                      <div
-                        className="w-4 h-4 rounded"
-                        style={{ backgroundColor: team.color || "#3b82f6" }}
-                      ></div>
-                      <span className="text-sm text-foreground">{team.name}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">Not assigned to any teams</p>
-                )}
-              </div>
-            </div>
+
           </div>
         </div>
 

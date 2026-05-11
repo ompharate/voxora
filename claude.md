@@ -1,7 +1,7 @@
 # InteraOne - Project Context for AI Assistants
 
 ## Project Overview
-InteraOne is a real-time chat support platform built as a **Turborepo monorepo** with separate API and web frontend applications. It enables teams to provide customer support through real-time conversations with features like team management, agent assignment, and widget embedding.
+InteraOne is a real-time chat support platform built as a **Turborepo monorepo** with separate API and web frontend applications. It enables organizations to provide customer support through real-time conversations with features like agent assignment and widget embedding.
 
 ### Deployment Models
 InteraOne is designed to be highly flexible in how it is deployed and consumed:
@@ -43,7 +43,7 @@ At runtime, the backend enforces this by requiring a valid `INTERAONE_LICENSE_KE
 apps/api/src/
 ├── config/         # Environment & database configuration
 ├── controllers/    # Route handlers (admin, agent, auth, organization, membership, etc.)
-├── models/         # MongoDB/Mongoose schemas (User, Organization, Membership, Team, Conversation, Message, Widget)
+├── models/         # MongoDB/Mongoose schemas (User, Organization, Membership, Conversation, Message, Widget)
 ├── routes/         # Express route definitions
 ├── services/       # Business logic layer (AdminService, AgentService, AuthService, OrganizationService)
 ├── middleware/     # Auth, validation, error handling, resolveOrganization, requireRole
@@ -127,7 +127,7 @@ InteraOne uses a strict multi-tenant architecture where data is isolated by `org
 
 ### User Roles (Per Organization)
 1. **Owner**: Full billing and organization deactivation rights.
-2. **Admin**: Can manage teams, widget settings, and invite/manage agents. Cannot demote Owners.
+2. **Admin**: Can manage widget settings and invite/manage agents. Cannot demote Owners.
 3. **Agent**: Support dashboard access, conversation handling.
 4. **End User**: Discusses with Agents via the embedded Chat Widget.
 
@@ -160,17 +160,15 @@ Generate JWT Access Token (7d) + Refresh Token (30d)
 - **Indexes**: slug (unique)
 
 ### Membership
-- **Fields**: userId, organizationId, role (owner|admin|agent), teams[], active
+- **Fields**: userId, organizationId, role (owner|admin|agent), active
 - **Indexes**: [userId, organizationId] (unique)
 
-### Team
-- **Fields**: name, description, color, organizationId, members[], createdAt
-- **Relations**: Users (agents) scoped to organization.
+
 
 ### Conversation
-- **Fields**: organizationId, visitor, agent, team, status, messages[], createdAt
+- **Fields**: organizationId, visitor, agent, status, messages[], createdAt
 - **Status**: open, active, closed
-- **Relations**: User (agent), Team, Message[]
+- **Relations**: User (agent), Message[]
 
 ### Message
 - **Fields**: organizationId, conversation, sender, senderType, content, attachments[], createdAt
@@ -298,7 +296,7 @@ All emails use HTML templates with inline styles:
 
 ### Email Service Methods
 ```typescript
-sendInviteEmail(to, inviterName, role, token, teamNames)
+sendInviteEmail(to, inviterName, role, token)
 sendPasswordResetEmail(to, name, token)
 sendWelcomeEmail(to, name, role)
 ```
@@ -367,13 +365,11 @@ Body: { email, password, role }
 
 ### Admin Operations
 ```bash
-# Get teams (requires auth)
-GET /api/v1/admin/teams
-Headers: { Authorization: Bearer <token> }
+
 
 # Invite agent
 POST /api/v1/admin/invite-agent
-Body: { email, name, teamIds, password }
+Body: { email, name, password }
 ```
 
 ## Project Commands

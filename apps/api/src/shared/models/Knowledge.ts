@@ -31,7 +31,6 @@ export interface IKnowledge extends Document {
   // URL pause control
   isPaused?: boolean;
   // Ownership
-  teamId?: string;
   uploadedBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -67,13 +66,12 @@ const KnowledgeSchema = new Schema<IKnowledge>(
     lastIndexed: { type: Date },
     errorMessage: { type: String },
     isPaused: { type: Boolean, default: false },
-    teamId: { type: String },
     uploadedBy: { type: String, required: true },
   },
   { timestamps: true },
 );
 
-KnowledgeSchema.index({ organizationId: 1, teamId: 1, status: 1 });
+KnowledgeSchema.index({ organizationId: 1, status: 1 });
 KnowledgeSchema.index({ organizationId: 1, catalog: 1 });
 KnowledgeSchema.index({ catalog: 1 });
 

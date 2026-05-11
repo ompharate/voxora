@@ -1,7 +1,7 @@
 export type InteraOneMode = "cloud" | "self-host";
 export type PlanTier = "free" | "pro" | "proplus" | "enterprise";
 export type EeFeature = "billing" | "contacts" | "white-label";
-export type PlanLimitKey = "messages" | "teams" | "humanAgents" | "contacts" | "knowledgeItems";
+export type PlanLimitKey = "messages" | "humanAgents" | "contacts" | "knowledgeItems";
 
 export interface PlanDefinition {
   plan: PlanTier;
@@ -43,7 +43,7 @@ export const OSS_CORE_CAPABILITIES: string[] = [
   "Realtime inbox and conversations",
   "Website chat widget",
   "Basic AI assistance",
-  "Teams and agent management",
+  "Agent management",
   "Knowledge base",
   "Organization and role management",
 ];
@@ -55,11 +55,10 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     summary: "Starter plan for small support workflows.",
     features: [
       "Everything in OSS core",
-      "Voxora branding",
+      "InteraOne branding",
     ],
     limits: {
       messages: 50,
-      teams: 1,
       humanAgents: 2,
       contacts: 10,
       knowledgeItems: 10,
@@ -70,12 +69,11 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     priceMonthlyUsd: 10,
     summary: "Built for growing support teams.",
     features: [
-      "Voxora branding",
+      "InteraOne branding",
       "Standard email support",
     ],
     limits: {
       messages: 500,
-      teams: 2,
       humanAgents: 5,
       contacts: 500,
       knowledgeItems: 100,
@@ -86,12 +84,11 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     priceMonthlyUsd: 39,
     summary: "High-volume plan for fast scaling teams.",
     features: [
-      "Voxora branding",
+      "InteraOne branding",
       "Priority support",
     ],
     limits: {
       messages: 5000,
-      teams: 10,
       humanAgents: 50,
       contacts: 5000,
       knowledgeItems: 1000,
@@ -102,13 +99,12 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     priceMonthlyUsd: 0,
     summary: "Custom unlimited plan for enterprise customers.",
     features: [
-      "No Voxora branding",
+      "No InteraOne branding",
       "Everything unlimited",
       "Custom contract and onboarding",
     ],
     limits: {
       messages: null,
-      teams: null,
       humanAgents: null,
       contacts: null,
       knowledgeItems: null,

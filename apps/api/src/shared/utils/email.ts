@@ -105,29 +105,14 @@ export async function buildInviteEmail(
   inviterName: string,
   role: string,
   inviteToken: string,
-  teamNames: string,
 ): Promise<BuiltEmail> {
   const inviteUrl = `${config.app.clientUrl}/auth/accept-invite?token=${inviteToken}`;
 
   const safeInviterName = escapeHtml(inviterName);
   const safeRole = escapeHtml(role);
-  const hasTeams = teamNames && teamNames.trim().length > 0;
-  const formattedTeams = hasTeams
-    ? teamNames
-        .split(",")
-        .map((name) => name.trim())
-        .filter(Boolean)
-        .map((name) => `<b>${escapeHtml(name)}</b>`)
-        .join(", ")
-    : "";
 
-  const titleText = hasTeams
-    ? `Join the Voxora ${formattedTeams} Teams`
-    : "Join the Voxora Organization";
-
-  const bodyText = hasTeams
-    ? `<strong>${safeInviterName}</strong> has invited you to join their ${formattedTeams} Teams as an <strong>${safeRole}</strong>.`
-    : `<strong>${safeInviterName}</strong> has invited you to join their organization as an <strong>${safeRole}</strong>.`;
+  const titleText = "Join the InteraOne Organization";
+  const bodyText = `<strong>${safeInviterName}</strong> has invited you to join their organization as an <strong>${safeRole}</strong>.`;
 
   return buildFromTemplate("invite", {
     inviterName: safeInviterName,
@@ -135,7 +120,6 @@ export async function buildInviteEmail(
     inviteUrl,
     titleText,
     bodyText,
-    teamNames: hasTeams ? formattedTeams : "",
   });
 }
 

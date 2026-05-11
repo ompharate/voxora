@@ -148,7 +148,7 @@ export function SignupForm() {
       <div className="space-y-1 mb-6">
         <h2 className="text-2xl font-bold tracking-tight text-foreground">Create Account</h2>
         <p className="text-sm text-muted-foreground">
-          Start your journey with Voxora
+          Start your journey with InteraOne
         </p>
       </div>
       <div>

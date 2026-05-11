@@ -33,7 +33,6 @@ export function useInviteMember() {
           },
           role: newMember.role,
           inviteStatus: "pending",
-          teams: [],
           organizationId: "",
         };
 

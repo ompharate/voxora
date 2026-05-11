@@ -22,13 +22,17 @@ import {
   TriangleAlert,
   UserCheck,
   UserCog,
-  Users,
   Users2,
   UsersRound,
+  UserPlus,
+  Info,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/domains/auth/hooks/useAuth";
 import { useLogout } from "@/domains/auth/hooks/useLogout";
 import { authApi } from "@/domains/auth/api/auth.api";
+import io, { Socket } from "socket.io-client";
+import { formatDistanceToNow } from "date-fns";
 import {
   canAccessEeFeature,
   getInteraOneMode,
@@ -42,6 +46,8 @@ import { useTheme } from "@/shared/theme/theme-context";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Loader } from "@/shared/ui/loader";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/shared/ui/dialog";
+import { apiClient } from "@/shared/lib/api-client";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -50,8 +56,19 @@ interface DashboardLayoutProps {
 type OrgRole = "owner" | "admin" | "agent";
 
 const CDN_URL =
-  (import.meta.env.VITE_CDN_URL as string | undefined) ||
-  "http://localhost:9001/voxora-widget/v1/voxora.js";
+  (import.meta.env.VITE_WIDGET_URL as string | undefined) ||
+  "http://localhost:9001/interaone-widget/v1/InteraOne.js";
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3002";
+
+interface Notification {
+  id: string;
+  type: "assignment" | "ai_sync" | "administrative" | "system";
+  title: string;
+  description: string;
+  timestamp: Date;
+  isRead: boolean;
+}
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
@@ -69,10 +86,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState<"all" | "unread">("all");
   const [isContentFullscreen, setIsContentFullscreen] = useState(false);
   const searchContainerRef = useRef<HTMLFormElement | null>(null);
-  const notificationsRef = useRef<HTMLDivElement | null>(null);
   const widgetScriptInjected = useRef(false);
 
   // Inject widget script once for the entire dashboard session so the
@@ -82,14 +99,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     if (!widgetId || widgetScriptInjected.current) return;
 
     // Remove any stale widget elements before injecting fresh script.
-    document.getElementById("voxora-widget-script")?.remove();
-    document.getElementById("voxora-widget-button")?.remove();
-    document.getElementById("voxora-widget-iframe")?.remove();
+    document.getElementById("InteraOne-widget-script")?.remove();
+    document.getElementById("InteraOne-widget-button")?.remove();
+    document.getElementById("InteraOne-widget-iframe")?.remove();
 
     const script = document.createElement("script");
     script.src = `${CDN_URL}?v=${Date.now()}`;
-    script.setAttribute("data-voxora-public-key", widgetId);
-    script.id = "voxora-widget-script";
+    script.setAttribute("data-InteraOne-public-key", widgetId);
+    script.id = "InteraOne-widget-script";
     document.body.appendChild(script);
     widgetScriptInjected.current = true;
   }, [widgetData?._id]);
@@ -109,7 +126,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
     if (orgRole === "admin" || orgRole === "owner") {
       base.push(
-        { label: "Teams", to: "/dashboard/teams" },
+
         { label: "Agents", to: "/dashboard/agents" },
         { label: "Members", to: "/dashboard/members" },
         { label: "Knowledge Static", to: "/dashboard/knowledge/static" },
@@ -151,9 +168,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         index === 0 && part === "dashboard"
           ? "Dashboard"
           : part
-              .split("-")
-              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-              .join(" ");
+            .split("-")
+            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+            .join(" ");
 
       items.push({ label, to: currentPath });
     });
@@ -167,11 +184,86 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     return searchableRoutes.filter((route) => route.label.toLowerCase().includes(term)).slice(0, 5);
   }, [searchQuery, searchableRoutes]);
 
-  const notifications = [
-    { id: 1, title: "New visitor message", description: "A new inbox conversation is waiting.", time: "2m ago" },
-    { id: 2, title: "Agent assigned", description: "Conversation was assigned to your team.", time: "10m ago" },
-    { id: 3, title: "Knowledge synced", description: "Knowledge base indexing completed.", time: "1h ago" },
-  ];
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const socketRef = useRef<Socket | null>(null);
+
+  // Setup Socket listener for notifications
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const token = localStorage.getItem("token");
+    const socket = io(SOCKET_URL, {
+      auth: { token },
+      transports: ["websocket", "polling"],
+    });
+
+    socketRef.current = socket;
+
+    socket.on("notification", (newNotif: any) => {
+      setNotifications(prev => [
+        {
+          ...newNotif,
+          timestamp: new Date(newNotif.timestamp || Date.now()),
+          isRead: false
+        },
+        ...prev
+      ].slice(0, 50)); // Keep last 50
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [isAuthenticated, user]);
+
+  // Fetch historical notifications
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    const fetchNotifications = async () => {
+      try {
+        const res = await apiClient.get<any>(`/notifications`);
+        if (res?.data?.data) {
+          setNotifications(res.data.data.map((n: any) => ({
+            ...n,
+            id: n._id,
+            timestamp: new Date(n.createdAt || n.timestamp)
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to load notifications:", err);
+      }
+    };
+    fetchNotifications();
+  }, [isAuthenticated, user]);
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const filteredNotifications = notifications.filter(n => notificationFilter === "all" || !n.isRead);
+
+  const markAllAsRead = async () => {
+    try {
+      await apiClient.patch(`/notifications/read-all`);
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    try {
+      await apiClient.patch(`/notifications/${id}/read`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "assignment": return <UserPlus className="h-4 w-4 text-blue-500" />;
+      case "ai_sync": return <Bot className="h-4 w-4 text-purple-500" />;
+      case "administrative": return <UserCheck className="h-4 w-4 text-emerald-500" />;
+      default: return <Info className="h-4 w-4 text-gray-500" />;
+    }
+  };
 
   const handleLogout = () => {
     logoutMutation.mutate();
@@ -183,10 +275,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       if (searchContainerRef.current && !searchContainerRef.current.contains(target)) {
         setShowSearchResults(false);
-      }
-
-      if (notificationsRef.current && !notificationsRef.current.contains(target)) {
-        setShowNotifications(false);
       }
     };
 
@@ -243,7 +331,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </p>
             {[
               { label: "Inbox", to: "/dashboard/conversations/inbox", icon: Inbox },
-       
+
             ].map((item) => (
               <Link key={item.to} to={item.to}>
                 <Button
@@ -287,17 +375,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 Operations
               </p>
 
-              <Link to="/dashboard/teams">
-                <Button
-                  variant="ghost"
-                  className={`w-full flex items-center px-3 py-2 text-sm cursor-pointer font-medium rounded-lg transition-colors justify-start ${isActive("/dashboard/teams")
-                    ? "bg-primary/10 text-primary border-r-2 border-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
-                >
-                  <Users className="h-5 w-5 mr-3" />
-                  <span className="flex-1 text-left">Teams</span>
-                </Button>
-              </Link>
 
               <Link to="/dashboard/agents">
                 <Button
@@ -389,18 +466,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               ]
                 .filter((item) => item.visible)
                 .map((item) => (
-                <Link key={item.to} to={item.to}>
-                  <Button
-                    variant="ghost"
-                    className={`w-full flex items-center px-3 py-2 text-sm cursor-pointer rounded-lg justify-start ${isActive(item.to, true)
-                      ? "text-primary bg-primary/5 font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"}`}
-                  >
-                    <item.icon className="h-4 w-4 mr-3" />
-                    <span>{item.label}</span>
-                  </Button>
-                </Link>
-              ))}
+                  <Link key={item.to} to={item.to}>
+                    <Button
+                      variant="ghost"
+                      className={`w-full flex items-center px-3 py-2 text-sm cursor-pointer rounded-lg justify-start ${isActive(item.to, true)
+                        ? "text-primary bg-primary/5 font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent"}`}
+                    >
+                      <item.icon className="h-4 w-4 mr-3" />
+                      <span>{item.label}</span>
+                    </Button>
+                  </Link>
+                ))}
             </div>
           )}
         </nav>
@@ -520,42 +597,112 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       )}
                     </form>
 
-                    <div ref={notificationsRef} className="relative">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="cursor-pointer relative"
-                        aria-label="Notifications"
-                        onClick={() => setShowNotifications((prev) => !prev)}
-                      >
-                        <Bell className="h-4 w-4" />
-                        <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary" />
-                      </Button>
+                    <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="cursor-pointer relative"
+                          aria-label="Notifications"
+                        >
+                          <Bell className="h-4 w-4" />
+                          {unreadCount > 0 && (
+                            <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground border-2 border-background">
+                              {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                          )}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col p-0 overflow-hidden bg-card/95 backdrop-blur-xl border-border">
+                        <DialogHeader className="px-6 py-4 border-b border-border/50 bg-muted/30 shrink-0">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-3">
+                                Notifications
+                                <div className="flex bg-background/50 border border-border/50 p-0.5 rounded-lg">
+                                  <Button
+                                    variant={notificationFilter === "all" ? "secondary" : "ghost"}
+                                    size="sm"
+                                    onClick={() => setNotificationFilter("all")}
+                                    className="h-7 text-xs px-3"
+                                  >
+                                    All History
+                                  </Button>
+                                  <Button
+                                    variant={notificationFilter === "unread" ? "secondary" : "ghost"}
+                                    size="sm"
+                                    onClick={() => setNotificationFilter("unread")}
+                                    className="h-7 text-xs px-3"
+                                  >
+                                    Unread
+                                  </Button>
+                                </div>
+                              </DialogTitle>
+                              <p className="text-xs text-muted-foreground mt-2 font-medium">
+                                {unreadCount} Unread Messages
+                              </p>
+                            </div>
+                            {unreadCount > 0 && (
+                              <button
+                                type="button"
+                                onClick={markAllAsRead}
+                                className="text-sm font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer mr-6"
+                              >
+                                Mark all read
+                              </button>
+                            )}
+                          </div>
+                        </DialogHeader>
 
-                      {showNotifications && (
-                        <div className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-popover p-2 shadow-lg z-50">
-                          <div className="flex items-center justify-between px-2 pb-2">
-                            <p className="text-sm font-semibold text-foreground">Notifications</p>
-                            <button
-                              type="button"
-                              className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-                            >
-                              Mark all read
-                            </button>
-                          </div>
-                          <div className="space-y-1 max-h-72 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                            {notifications.map((item) => (
-                              <div key={item.id} className="rounded-md px-2 py-2 hover:bg-accent">
-                                <p className="text-sm font-medium text-foreground">{item.title}</p>
-                                <p className="text-xs text-muted-foreground">{item.description}</p>
-                                <p className="text-[11px] text-muted-foreground mt-1">{item.time}</p>
+                        <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden p-2">
+                          {filteredNotifications.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                                <Bell className="h-8 w-8 text-muted-foreground/50" />
                               </div>
-                            ))}
-                          </div>
+                              <p className="text-base font-medium text-foreground">No notifications yet</p>
+                              <p className="text-sm text-muted-foreground mt-1">We&apos;ll notify you when something important happens.</p>
+                            </div>
+                          ) : (
+                            <div className="divide-y divide-border/40 space-y-1">
+                              {filteredNotifications.map((item) => (
+                                <div
+                                  key={item.id}
+                                  onClick={() => markAsRead(item.id)}
+                                  className={`group flex items-start gap-4 p-4 rounded-xl hover:bg-accent/50 transition-all cursor-pointer relative ${!item.isRead ? 'bg-primary/5' : ''}`}
+                                >
+                                  {!item.isRead && (
+                                    <div className="absolute left-0 top-3 bottom-3 w-1 bg-primary rounded-r-md" />
+                                  )}
+
+                                  <div className="mt-1 shrink-0">
+                                    <div className="h-10 w-10 rounded-full bg-background border border-border/50 flex items-center justify-center shadow-sm">
+                                      {getNotificationIcon(item.type)}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-3 mb-1">
+                                      <p className={`text-base truncate ${!item.isRead ? 'font-bold text-foreground' : 'font-medium text-foreground/80'}`}>
+                                        {item.title}
+                                      </p>
+                                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                                        <Clock className="h-3.5 w-3.5" />
+                                        {formatDistanceToNow(item.timestamp, { addSuffix: true })}
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                      {item.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      </DialogContent>
+                    </Dialog>
 
                     <Button
                       onClick={toggleTheme}

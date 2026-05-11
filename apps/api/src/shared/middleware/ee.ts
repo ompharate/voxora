@@ -8,7 +8,7 @@ import {
   isFeatureEnabledForMode,
   resolveOrganizationPlan,
 } from "@shared/ee";
-import { logEeAuditEvent } from "@shared/ee/audit";
+import { logEeAuditEvent } from "../ee/audit";
 
 export const requireEeAvailable = () => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {

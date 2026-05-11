@@ -37,7 +37,7 @@ services:
   # Exits after deploy (restart: no). Re-runs on `docker-compose up`.
   # Uses runtime config injection via entrypoint.sh (same pattern as the web app).
   widget-deploy:
-    image: ompharate/InteraOne-widget:latest
+    image: ompharate/interaone-widget:latest
     restart: no
     env_file:
       - ../apps/widget/.env.docker
@@ -53,7 +53,7 @@ services:
         max-file: "2"
 
   web: 
-    image: ompharate/InteraOne-web:latest
+    image: ompharate/interaone-web:latest
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"  # Caddy is the public entry-point; bind locally for health checks only
@@ -77,7 +77,7 @@ services:
         max-file: "3"
 
   api:
-    image: ompharate/InteraOne-api:latest
+    image: ompharate/interaone-api:latest
     restart: unless-stopped
     ports:
       - "127.0.0.1:3002:3002"  # Caddy is the public entry-point; bind locally for health checks only
@@ -105,7 +105,7 @@ services:
         max-file: "3"
 
   ai:
-    image: ompharate/InteraOne-ai:latest
+    image: ompharate/interaone-ai:latest
     restart: unless-stopped
     env_file:
       - ../apps/ai/.env.docker
@@ -125,7 +125,7 @@ services:
         max-file: "3"
 
   worker:
-    image: ompharate/InteraOne-worker:latest
+    image: ompharate/interaone-worker:latest
     restart: unless-stopped
     env_file:
       - ../apps/worker/.env.docker

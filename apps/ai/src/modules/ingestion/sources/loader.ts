@@ -12,7 +12,7 @@ const TEXT_STREAM_SEGMENT_CHARS = parseInt(
 
  
 async function fetchBuffer(fileKey: string): Promise<Buffer> {
-  const stream = await minioClient.getObject(config.minio.bucket, fileKey);
+  const stream = await minioClient.getObject(config.minio.bucket || "", fileKey);
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
@@ -22,7 +22,7 @@ async function fetchBuffer(fileKey: string): Promise<Buffer> {
 }
 
 async function getObjectStream(fileKey: string) {
-  return minioClient.getObject(config.minio.bucket, fileKey);
+  return minioClient.getObject(config.minio.bucket || "", fileKey);
 }
 
  

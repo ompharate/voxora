@@ -1,7 +1,7 @@
 # Stage 1 — build the widget JS bundle
 FROM node:20-alpine AS builder
 
-RUN corepack enable pnpm
+RUN npm install -g pnpm@9.15.0
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN pnpm run build
 # On startup it runs deploy-to-minio.js, then exits (restart: no in compose).
 FROM node:20-alpine AS deploy
 
-RUN corepack enable pnpm
+RUN npm install -g pnpm@9.15.0
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ RUN pnpm install --prod
 
 # Copy built widget files
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/public ./public
+
 
 # Copy deploy script and entrypoint
 COPY deploy-to-minio.js ./

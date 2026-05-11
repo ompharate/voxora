@@ -416,7 +416,7 @@ QDRANT_URL=http://qdrant:6333
 
 # LLM Provider (Gemini recommended, configure API key below)
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_MODEL=gemini-2.5-flash
 LLM_PROVIDER=gemini
 
 # Embeddings

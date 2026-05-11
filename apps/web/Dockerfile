@@ -1,7 +1,7 @@
 # Multi-stage build for Vite
 FROM node:20-alpine AS builder
 
-RUN corepack enable pnpm
+RUN npm install -g pnpm@9.15.0
 
 WORKDIR /app
 

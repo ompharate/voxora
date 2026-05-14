@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/button";
+import { toast } from "sonner";
 import { Textarea } from "@/shared/ui/textarea";
 import { Input } from "@/shared/ui/input";
 import {
@@ -311,12 +312,16 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
 
   const handleUpdateCustomerInfo = async () => {
     if (!updateForm.name.trim() && !updateForm.email.trim()) {
-      alert("Please provide at least a name or email");
+      toast.error("Invalid Submission", {
+        description: "Please provide at least a name or email address to update.",
+      });
       return;
     }
 
     if (!conversation?.visitor?.sessionId) {
-      alert("Cannot update visitor info: session ID not found");
+      toast.error("Update Blocked", {
+        description: "Cannot update visitor info: missing session identifier.",
+      });
       return;
     }
 
@@ -344,10 +349,14 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
 
       setIsUpdateDialogOpen(false);
       setUpdateForm({ name: "", email: "" });
-      alert("Customer information updated successfully!");
+      toast.success("Info Updated", {
+        description: `Customer details for ${updateForm.name || "this visitor"} have been saved successfully.`,
+      });
     } catch (error) {
       console.error("Error updating customer info:", error);
-      alert("Failed to update customer information");
+      toast.error("Operation Failed", {
+        description: "Failed to update customer information. Please try again later.",
+      });
     } finally {
       setIsUpdating(false);
     }

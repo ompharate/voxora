@@ -245,7 +245,7 @@ async function getPage(url: string): Promise<string | null> {
     responseType: "text",
   });
 
-  const contentType: string = (res.headers["content-type"] ?? "").toLowerCase();
+  const contentType: string = String(res.headers["content-type"] ?? "").toLowerCase();
   if (!contentType.includes("text/html")) {
     return null; // binary, JSON, plain-text feed, etc.
   }

@@ -1,7 +1,7 @@
 # Multi-stage build for platform worker
 FROM node:20-alpine AS builder
 
-RUN corepack enable pnpm
+RUN npm install -g pnpm@9.15.0
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN pnpm run build
 # Production stage
 FROM node:20-alpine
 
-RUN corepack enable pnpm
+RUN npm install -g pnpm@9.15.0
 
 WORKDIR /app
 

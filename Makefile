@@ -221,7 +221,7 @@ docker-start: check-docker ## Start Docker services
 docker-health: ## Check health of Docker services
 	@echo "$(BLUE)🏥 Checking service health...$(NC)"
 	@sleep 3
-	@docker ps --filter "name=InteraOne-" --format "table {{.Names}}\t{{.Status}}" | grep -v "NAMES" | while read line; do \
+	@docker ps --filter "name=interaone-" --format "table {{.Names}}\t{{.Status}}" | grep -v "NAMES" | while read line; do \
 		if echo "$$line" | grep -q "Up"; then \
 			echo "$(GREEN)✓$(NC) $$line"; \
 		else \
@@ -253,48 +253,67 @@ widget-deploy: ## Build and deploy widget to MinIO
 		exit 1; \
 	}
 	@echo "$(GREEN)✅ Widget deployed to MinIO$(NC)"
-	@echo "$(BLUE)📍 Widget URL:$(NC) http://localhost:9001/InteraOne-widget/v1/InteraOne.js"
+	@echo "$(BLUE)📍 Widget URL:$(NC) http://localhost:9001/interaone-widget/v1/InteraOne.js"
 	@echo ""
 
 docker-setup-builder:
-	@docker buildx create --use --name InteraOne-builder 2>/dev/null || docker buildx use InteraOne-builder
+	@docker buildx create --use --name interaone-builder 2>/dev/null || docker buildx use interaone-builder
 
 docker-build-api: docker-setup-builder ## Build API image
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/InteraOne-api:$(VERSION) \
-		--tag $(REGISTRY)/InteraOne-api:latest \
+		--tag $(REGISTRY)/interaone-api:$(VERSION) \
+		--tag $(REGISTRY)/interaone-api:latest \
 		--push -f apps/api/Dockerfile apps/api
 
 docker-build-web: docker-setup-builder ## Build Web image
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/InteraOne-web:$(VERSION) \
-		--tag $(REGISTRY)/InteraOne-web:latest \
+		--tag $(REGISTRY)/interaone-web:$(VERSION) \
+		--tag $(REGISTRY)/interaone-web:latest \
 		--push -f apps/web/Dockerfile apps/web
 
 docker-build-ai: docker-setup-builder ## Build AI worker image
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/InteraOne-ai:$(VERSION) \
-		--tag $(REGISTRY)/InteraOne-ai:latest \
+		--tag $(REGISTRY)/interaone-ai:$(VERSION) \
+		--tag $(REGISTRY)/interaone-ai:latest \
 		--push -f apps/ai/Dockerfile apps/ai
 
-docker-images: docker-build-api docker-build-web docker-build-ai ## Build all images
+docker-build-worker: docker-setup-builder ## Build Worker image
+	docker buildx build --platform $(PLATFORMS) \
+		--tag $(REGISTRY)/interaone-worker:$(VERSION) \
+		--tag $(REGISTRY)/interaone-worker:latest \
+		--push -f apps/worker/Dockerfile apps/worker
+
+docker-build-widget: docker-setup-builder ## Build Widget image
+	docker buildx build --platform $(PLATFORMS) \
+		--tag $(REGISTRY)/interaone-widget:$(VERSION) \
+		--tag $(REGISTRY)/interaone-widget:latest \
+		--push -f apps/widget/Dockerfile apps/widget
+
+docker-images: docker-build-api docker-build-web docker-build-ai docker-build-worker docker-build-widget ## Build all images
 
 docker-release: docker-setup-builder ## Build and push all images with RELEASE_VERSION (e.g. make docker-release RELEASE_VERSION=0.9.0-beta)
 	@[ "$(RELEASE_VERSION)" ] || { echo "$(RED)❌ RELEASE_VERSION is required$(NC)  usage: make docker-release RELEASE_VERSION=0.9.0-beta"; exit 1; }
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/InteraOne-api:$(RELEASE_VERSION) \
-		--tag $(REGISTRY)/InteraOne-api:latest \
+		--tag $(REGISTRY)/interaone-api:$(RELEASE_VERSION) \
+		--tag $(REGISTRY)/interaone-api:latest \
 		--push -f apps/api/Dockerfile apps/api
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/InteraOne-web:$(RELEASE_VERSION) \
-		--tag $(REGISTRY)/InteraOne-web:latest \
+		--tag $(REGISTRY)/interaone-web:$(RELEASE_VERSION) \
+		--tag $(REGISTRY)/interaone-web:latest \
 		--push -f apps/web/Dockerfile apps/web
 	docker buildx build --platform $(PLATFORMS) \
-		--tag $(REGISTRY)/InteraOne-ai:$(RELEASE_VERSION) \
-		--tag $(REGISTRY)/InteraOne-ai:latest \
+		--tag $(REGISTRY)/interaone-ai:$(RELEASE_VERSION) \
+		--tag $(REGISTRY)/interaone-ai:latest \
 		--push -f apps/ai/Dockerfile apps/ai
+	docker buildx build --platform $(PLATFORMS) \
+		--tag $(REGISTRY)/interaone-worker:$(RELEASE_VERSION) \
+		--tag $(REGISTRY)/interaone-worker:latest \
+		--push -f apps/worker/Dockerfile apps/worker
+	docker buildx build --platform $(PLATFORMS) \
+		--tag $(REGISTRY)/interaone-widget:$(RELEASE_VERSION) \
+		--tag $(REGISTRY)/interaone-widget:latest \
+		--push -f apps/widget/Dockerfile apps/widget
 	@echo "$(GREEN)✅ Released $(RELEASE_VERSION) to Docker Hub$(NC)"
 
 clean: ## Clean artifacts
 	rm -rf node_modules apps/*/node_modules apps/*/dist apps/*/.turbo .turbo
-

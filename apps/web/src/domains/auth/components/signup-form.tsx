@@ -14,7 +14,6 @@ import {
   User,
 } from "lucide-react";
 import { Link } from "react-router";
-import { Alert } from "@/shared/ui/alert";
 import { Label } from "@/shared/ui/label";
 import {
   validateEmail,
@@ -39,7 +38,7 @@ const stepVariants = {
 
 const stepTransition = {
   duration: 0.4,
-  ease: [0.23, 1, 0.32, 1],
+  ease: [0.23, 1, 0.32, 1] as const,
 };
 
 function validateCompanyName(companyName: string) {
@@ -239,6 +238,20 @@ export function SignupForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (currentStep < totalSteps) {
+      const fieldsByStep: Record<number, FieldName[]> = {
+        1: ["name", "email"],
+        2: ["companyName"],
+      };
+      const fields = fieldsByStep[currentStep];
+
+      markTouched(fields);
+      if (validateFields(fields)) {
+        setCurrentStep(currentStep + 1);
+      }
+      return;
+    }
 
     const allFields: FieldName[] = ["name", "email", "companyName", "password", "confirmPassword"];
     markTouched(allFields);

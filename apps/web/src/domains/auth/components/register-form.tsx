@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/shared/ui/card";
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from "lucide-react";
-import { validateEmail, validateName, validatePassword, validatePasswordConfirmation, validateRegisterForm } from "@/lib/validation";
+import { validateEmail, validateName, validatePassword, validatePasswordConfirmation, validateRegisterForm } from "@/shared/lib/validation";
 
 export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -126,7 +126,7 @@ export function RegisterForm() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name as keyof typeof formData]: value,
     }));
 
     // Clear field error when user starts typing

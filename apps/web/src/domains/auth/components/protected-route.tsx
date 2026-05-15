@@ -13,7 +13,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({
   children,
   requiredRole,
-  redirectTo = "/login",
+  redirectTo = "/auth/login",
 }: ProtectedRouteProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -42,7 +42,7 @@ export function ProtectedRoute({
           } else if (userRole === "agent") {
             window.location.href = "/conversation/inbox";
           } else {
-            window.location.href = "/login";
+            window.location.href = "/auth/login";
           }
         }
       }

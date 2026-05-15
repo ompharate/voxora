@@ -148,7 +148,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-InteraOne-chat}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-interaone}
     volumes:
       - mongodb_data:/data/db
       - mongodb_backups:/backups

@@ -1,6 +1,7 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router";
 import { useAuth } from "@/domains/auth/hooks";
 import { authApi } from "@/domains/auth/api/auth.api";
 
@@ -13,14 +14,15 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({
   children,
   requiredRole,
-  redirectTo = "/login",
+  redirectTo = "/auth/login",
 }: ProtectedRouteProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        window.location.href = redirectTo;
+        navigate(redirectTo);
         return;
       }
 
@@ -38,16 +40,16 @@ export function ProtectedRoute({
         if (!hasRequiredRole) {
           // Redirect based on user role
           if (userRole === "admin" || userRole === "founder") {
-            window.location.href = "/admin";
+            navigate("/admin");
           } else if (userRole === "agent") {
-            window.location.href = "/conversation/inbox";
+            navigate("/conversation/inbox");
           } else {
-            window.location.href = "/login";
+            navigate("/auth/login");
           }
         }
       }
     }
-  }, [isAuthenticated, isLoading, user, requiredRole, redirectTo]);
+  }, [isAuthenticated, isLoading, user, requiredRole, redirectTo, navigate]);
 
   if (isLoading) {
     return (

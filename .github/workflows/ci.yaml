@@ -2,10 +2,8 @@
 name: Lint and Code Quality
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  release:
+    types: [published]
 
 jobs:
   code_quality:

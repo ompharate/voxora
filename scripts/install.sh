@@ -355,7 +355,7 @@ NODE_ENV=production
 PORT=3002
 
 # MongoDB (service hostname: mongodb)
-MONGODB_URI=mongodb://admin:$MONGO_PASSWORD@mongodb:27017/InteraOne-chat?authSource=admin
+MONGODB_URI=mongodb://admin:$MONGO_PASSWORD@mongodb:27017/interaone?authSource=admin
 
 # Redis (service hostname: redis)
 REDIS_HOST=redis
@@ -365,8 +365,8 @@ REDIS_PASSWORD=$REDIS_PASSWORD
 # JWT
 JWT_SECRET=$JWT_SECRET
 JWT_EXPIRES_IN=7d
-REFRESH_TOKEN_SECRET=$JWT_SECRET
-REFRESH_TOKEN_EXPIRES_IN=30d
+JWT_REFRESH_SECRET=$JWT_SECRET
+JWT_REFRESH_EXPIRES_IN=30d
 
 # MinIO (service hostname: minio)
 MINIO_ENDPOINT=minio
@@ -375,6 +375,7 @@ MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=$MINIO_PASSWORD
 MINIO_USE_SSL=false
 MINIO_PUBLIC_URL=https://$CDN_HOST
+MINIO_BUCKET_NAME=interaone-chat
 
 # CORS
 CLIENT_URL=https://$WEB_HOST
@@ -400,7 +401,7 @@ VITE_API_URL=https://$API_HOST/api/v1
 VITE_SOCKET_URL=https://$API_HOST
 VITE_WIDGET_URL=https://$CDN_HOST/interaone-widget/v1/InteraOne.js?v=2
 VITE_PUBLIC_ENV=production
-VITE_INTERAONE_MODE=self-hosted
+VITE_INTERAONE_MODE=self-host
 VITE_INTERAONE_EE_ENABLED=false
 VITE_INTERAONE_EE_MODULE_PRESENT=true
 VITE_INTERAONE_LICENSE_KEY=
@@ -434,7 +435,7 @@ NODE_ENV=production
 PORT=3003
 
 # MongoDB (service hostname: mongodb)
-MONGODB_URI=mongodb://admin:$MONGO_PASSWORD@mongodb:27017/InteraOne-chat?authSource=admin
+MONGODB_URI=mongodb://admin:$MONGO_PASSWORD@mongodb:27017/interaone?authSource=admin
 
 # Redis (service hostname: redis)
 REDIS_HOST=redis
@@ -447,7 +448,7 @@ MINIO_PORT=9001
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=$MINIO_PASSWORD
 MINIO_USE_SSL=false
-MINIO_BUCKET_NAME=InteraOne-chat
+MINIO_BUCKET_NAME=interaone-chat
 
 # Qdrant (service hostname: qdrant)
 QDRANT_URL=http://qdrant:6333

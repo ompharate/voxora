@@ -2,12 +2,13 @@ name: Build & Push Docker Images
 
 on:
   push:
+    branches: [main]          # build + push :latest on every merge to main
     tags:
-      - "v*"           # triggers on: git tag v0.9.0-beta && git push --tags
+      - "v*"                  # build + push versioned tag on: git tag v1.0.0 && git push --tags
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (e.g. 0.9.0-beta)"
+        description: "Release version (e.g. 1.0.0)"
         required: true
 
 jobs:
@@ -18,14 +19,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Strip leading 'v' from tag  →  v0.9.0-beta becomes 0.9.0-beta
+      # Resolve the image tag:
+      #   - workflow_dispatch → user-provided version
+      #   - tag push (v1.0.0) → 1.0.0
+      #   - branch push (main) → latest
       - name: Resolve version
         id: version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref_type }}" = "tag" ]; then
             echo "tag=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
           fi
 
       - name: Set up QEMU (for multi-platform builds)
@@ -46,28 +52,28 @@ jobs:
         with:
           context: ./apps/api
           file: ./apps/api/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/InteraOne-api:${{ steps.version.outputs.tag }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/InteraOne-api:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/interaone-api:${{ steps.version.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/interaone-api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       # ── WEB ──────────────────────────────────────────────────────────────
-      # Built with placeholder values (__NEXT_PUBLIC_API_URL__ etc).
-      # entrypoint.sh replaces them at container startup from .env.web — 
-      # so this is now a generic image that works with any server IP/domain.
+      # Built with __VITE_*__ placeholder values.
+      # entrypoint.sh replaces them at container startup from .env.docker
+      # so this is a generic image that works with any domain.
       - name: Build & push Web
         uses: docker/build-push-action@v6
         with:
           context: ./apps/web
           file: ./apps/web/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/InteraOne-web:${{ steps.version.outputs.tag }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/InteraOne-web:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/interaone-web:${{ steps.version.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/interaone-web:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -77,11 +83,25 @@ jobs:
         with:
           context: ./apps/ai
           file: ./apps/ai/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/InteraOne-ai:${{ steps.version.outputs.tag }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/InteraOne-ai:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/interaone-ai:${{ steps.version.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/interaone-ai:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── WORKER ───────────────────────────────────────────────────────────
+      - name: Build & push Worker
+        uses: docker/build-push-action@v6
+        with:
+          context: ./apps/worker
+          file: ./apps/worker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/interaone-worker:${{ steps.version.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/interaone-worker:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -94,11 +114,11 @@ jobs:
         with:
           context: ./apps/widget
           file: ./apps/widget/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/InteraOne-widget:${{ steps.version.outputs.tag }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/InteraOne-widget:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/interaone-widget:${{ steps.version.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/interaone-widget:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -109,7 +129,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Image | Tag |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-----|" >> $GITHUB_STEP_SUMMARY
-          echo "| InteraOne-api | \`${{ steps.version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| InteraOne-web | \`${{ steps.version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| InteraOne-ai  | \`${{ steps.version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| InteraOne-widget | \`${{ steps.version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| interaone-api    | \`${{ steps.version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| interaone-web    | \`${{ steps.version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| interaone-ai     | \`${{ steps.version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| interaone-worker | \`${{ steps.version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| interaone-widget | \`${{ steps.version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY

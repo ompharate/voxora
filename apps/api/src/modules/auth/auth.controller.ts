@@ -30,6 +30,22 @@ export const adminSignup = asyncHandler(async (req: Request, res: Response) => {
   sendResponse(res, 201, true, "InteraOne setup completed successfully", result.data);
 });
 
+export const initiateSignup = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.initiateSignup(req.body);
+  if (!result.success) {
+    return sendError(res, result.statusCode || 400, result.message || "Initiate signup failed");
+  }
+  sendResponse(res, 200, true, result.message || "OTP sent", null);
+});
+
+export const completeSignup = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.completeSignup(req.body);
+  if (!result.success) {
+    return sendError(res, result.statusCode || 400, result.message || "Complete signup failed");
+  }
+  sendResponse(res, 200, true, "Signup completed successfully", result.data);
+});
+
 // ─── Login ────────────────────────────────────────────────────────────────────
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
@@ -69,12 +85,45 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
   if (!result.success) {
     return sendError(res, 503, result.message || "Email is not configured");
   }
-  sendResponse(res, 200, true, "If an account exists with this email, a password reset link has been sent");
+  sendResponse(res, 200, true, "If an account exists with this email, a verification code has been sent");
 });
 
-export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
-  const { token, newPassword } = req.body;
-  const result = await authService.resetPassword(token, newPassword);
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { email, code } = req.body;
+  const result = await authService.verifyOTP(email, code, "email_verification");
+
+  if (!result.success) {
+    return sendError(res, result.statusCode || 400, result.message || "Verification failed");
+  }
+
+  sendResponse(res, 200, true, "Email verified successfully");
+});
+
+export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
+  const { email, code, type } = req.body;
+  const result = await authService.verifyOTP(email, code, type);
+
+  if (!result.success) {
+    return sendError(res, result.statusCode || 400, result.message || "OTP verification failed");
+  }
+
+  sendResponse(res, 200, true, "OTP verified successfully");
+});
+
+export const resendOTP = asyncHandler(async (req: Request, res: Response) => {
+  const { email, type } = req.body;
+  const result = await authService.resendOTP(email, type);
+
+  if (!result.success) {
+    return sendError(res, result.statusCode || 400, result.message || "Failed to resend OTP");
+  }
+
+  sendResponse(res, 200, true, "OTP sent successfully");
+});
+
+export const resetPasswordWithOTP = asyncHandler(async (req: Request, res: Response) => {
+  const { email, code, newPassword } = req.body;
+  const result = await authService.resetPasswordWithOTP(email, code, newPassword);
 
   if (!result.success) {
     return sendError(res, result.statusCode || 400, result.message || "Failed to reset password");
@@ -82,7 +131,6 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
 
   sendResponse(res, 200, true, "Password reset successful");
 });
-
 
 export const refreshToken = asyncHandler(async (req: Request, res: Response) => {
   sendError(res, 501, "Refresh token endpoint not yet implemented");

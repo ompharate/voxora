@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from "mongoose";
 
-export type EmailTemplateType = "invite" | "password_reset" | "welcome";
+export type EmailTemplateType = "invite" | "password_reset" | "welcome" | "email_verification_otp" | "password_reset_otp";
 
 export interface IEmailTemplate extends Document {
   templateKey: string;
@@ -23,7 +23,7 @@ const EmailTemplateSchema = new Schema<IEmailTemplate>(
     },
     type: {
       type: String,
-      enum: ["invite", "password_reset", "welcome"],
+      enum: ["invite", "password_reset", "welcome", "email_verification_otp", "password_reset_otp"],
       required: true,
       unique: true,
       index: true,

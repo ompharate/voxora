@@ -66,7 +66,7 @@ class ResendEmailAdapter implements EmailAdapter {
     const fromEmail = options.from?.email || config.email.from.email;
 
     const { error } = await this.client.emails.send({
-      from: `${fromName} <${fromEmail}>`,
+      from: `"${fromName}" <${fromEmail}>`,
       to: options.to,
       subject: options.subject,
       html: options.html,
@@ -78,7 +78,7 @@ class ResendEmailAdapter implements EmailAdapter {
 
 class DisabledEmailAdapter implements EmailAdapter {
   async send(options: EmailJobData): Promise<void> {
-    console.warn(`[Email Worker] Email sending disabled — skipping mail to ${options.to}: "${options.subject}"`);
+    console.warn(`[Email Worker] SKIPPING mail to ${options.to} (Provider is DISABLED): "${options.subject}"`);
   }
 }
 

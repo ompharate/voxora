@@ -80,12 +80,12 @@ export function LoginForm() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name as keyof LoginPayload]: value,
     }));
 
     // Clear field error when user starts typing
-    if (touched[name as "email" | "password"]) {
-      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    if (touched[name as keyof typeof touched]) {
+      setFieldErrors((prev) => ({ ...prev, [name as keyof typeof fieldErrors]: undefined }));
     }
   };
 

@@ -9,7 +9,7 @@ interface AuthState {
   organization: Organization | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  
+
   // Actions
   login: (loginPayload: LoginPayload) => Promise<void>;
   signup: (signupPayload: SignupPayload) => Promise<void>;
@@ -18,6 +18,7 @@ interface AuthState {
   updateUser: (user: User) => void;
   setOrganization: (org: Organization | null) => void;
   initializeAuth: () => Promise<void>;
+  completeSignup: (data: any) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -70,17 +71,17 @@ export const useAuthStore = create<AuthState>()(
 
             // Single org — auto-logged in
             const { user, accessToken, role, organization: loginOrg } = response.data;
-            
+
             if (accessToken) authApi.setToken(accessToken);
             if (loginOrg?._id) authApi.setActiveOrgId(loginOrg._id);
             if (role) authApi.setOrgRole(role);
             if (loginOrg?.plan) authApi.setOrgPlan(loginOrg.plan);
 
             authApi.setUser(user);
-            set({ 
-              user, 
-              organization: loginOrg || null, 
-              isAuthenticated: true 
+            set({
+              user,
+              organization: loginOrg || null,
+              isAuthenticated: true
             });
 
             // Redirect to dashboard
@@ -100,16 +101,16 @@ export const useAuthStore = create<AuthState>()(
 
           if (response.success && response.data) {
             const { user, accessToken, role, organization: signupOrg } = response.data;
-            
+
             if (accessToken) authApi.setToken(accessToken);
             if (signupOrg?._id) authApi.setActiveOrgId(signupOrg._id);
             if (role) authApi.setOrgRole(role);
             if (signupOrg?.plan) authApi.setOrgPlan(signupOrg.plan);
 
             authApi.setUser(user);
-            set({ 
-              user, 
-              organization: signupOrg, 
+            set({
+              user,
+              organization: signupOrg,
               isAuthenticated: true,
             });
 
@@ -128,7 +129,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           console.log("Accepting invite with token:", token);
           const response = await authApi.acceptInvite(token, password);
-          
+
           console.log("Accept invite API response:", response);
 
           if (response.success && response.data) {
@@ -145,10 +146,10 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         authApi.removeToken();
         authApi.removeOrgData();
-        set({ 
-          user: null, 
-          organization: null, 
-          isAuthenticated: false 
+        set({
+          user: null,
+          organization: null,
+          isAuthenticated: false
         });
         window.location.href = "/auth/login";
       },
@@ -165,6 +166,35 @@ export const useAuthStore = create<AuthState>()(
         }
         if (org?.plan) {
           authApi.setOrgPlan(org.plan);
+        }
+      },
+      completeSignup: async (data: any) => {
+        try {
+          const response = await authApi.completeSignup(data);
+
+          if (response.success && response.data) {
+            const { user, accessToken, role, organization: signupOrg } = response.data;
+
+            if (accessToken) authApi.setToken(accessToken);
+            if (signupOrg?._id) authApi.setActiveOrgId(signupOrg._id);
+            if (role) authApi.setOrgRole(role);
+            if (signupOrg?.plan) authApi.setOrgPlan(signupOrg.plan);
+
+            authApi.setUser(user);
+            set({
+              user,
+              organization: signupOrg,
+              isAuthenticated: true,
+            });
+
+            // Redirect to dashboard
+            window.location.href = "/dashboard";
+          } else {
+            throw new Error(response.message || "Signup completion failed");
+          }
+        } catch (error) {
+          console.error("Complete signup error:", error);
+          throw error;
         }
       },
 

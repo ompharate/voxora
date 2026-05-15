@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as AuthController from "./auth.controller";
-import { authenticate, validateRequest, authRateLimit } from "@shared/middleware";
+import { authenticate, validateRequest, authRateLimit, otpRateLimit } from "@shared/middleware";
 import { authSchema } from "./auth.schema";
 
 const router = Router();
@@ -15,6 +15,10 @@ router.post(
   AuthController.adminSignup,
 );
 
+// ─── Multi-step Signup ────────────────────────────────────────────────────────
+router.post("/initiate-signup", AuthController.initiateSignup);
+router.post("/complete-signup", AuthController.completeSignup);
+
 // ─── Unified Login ────────────────────────────────────────────────────────────
 router.post(
   "/login",
@@ -23,10 +27,15 @@ router.post(
   AuthController.login,
 );
 
+// ─── OTP / Verification ───────────────────────────────────────────────────────
+router.post("/verify-email", otpRateLimit, AuthController.verifyEmail);
+router.post("/resend-otp", otpRateLimit, AuthController.resendOTP);
+router.post("/verify-otp", otpRateLimit, AuthController.verifyOTP);
+router.post("/reset-password-otp", otpRateLimit, AuthController.resetPasswordWithOTP);
+
 
 // ─── Password Reset ───────────────────────────────────────────────────────────
 router.post("/forgot-password", AuthController.forgotPassword);
-router.post("/reset-password", AuthController.resetPassword);
 
 router.post("/refresh-token", AuthController.refreshToken);
 

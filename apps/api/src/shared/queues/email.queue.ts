@@ -5,6 +5,8 @@ import {
   buildInviteEmail,
   buildPasswordResetEmail,
   buildWelcomeEmail,
+  buildEmailVerificationOTPEmail,
+  buildForgotPasswordOTPEmail,
   type EmailOptions,
 } from "../utils/email";
 import { resolveFromEmail } from "../utils/email-sender";
@@ -29,7 +31,7 @@ const emailQueue = new Queue<EmailOptions>(EMAIL_QUEUE, {
 });
 
 async function enqueueEmail(
-  jobName: "invite" | "password_reset" | "welcome",
+  jobName: "invite" | "password_reset" | "welcome" | "email_verification_otp" | "password_reset_otp",
   payload: { to: string; subject: string; html: string; text?: string },
 ): Promise<void> {
   const from = await resolveFromEmail();
@@ -67,6 +69,28 @@ export async function enqueueWelcomeEmail(
   if (!isEmailEnabled()) return false;
   const { subject, html } = await buildWelcomeEmail(name, role);
   await enqueueEmail("welcome", { to, subject, html });
+  return true;
+}
+
+export async function enqueueEmailVerificationOTPEmail(
+  to: string,
+  name: string,
+  otp: string,
+): Promise<boolean> {
+  if (!isEmailEnabled()) return false;
+  const { subject, html } = await buildEmailVerificationOTPEmail(name, otp);
+  await enqueueEmail("email_verification_otp", { to, subject, html });
+  return true;
+}
+
+export async function enqueueForgotPasswordOTPEmail(
+  to: string,
+  name: string,
+  otp: string,
+): Promise<boolean> {
+  if (!isEmailEnabled()) return false;
+  const { subject, html } = await buildForgotPasswordOTPEmail(name, otp);
+  await enqueueEmail("password_reset_otp", { to, subject, html });
   return true;
 }
 

@@ -144,3 +144,23 @@ export async function buildWelcomeEmail(name: string, role: string): Promise<Bui
     loginUrl,
   });
 }
+
+export async function buildEmailVerificationOTPEmail(
+  name: string,
+  otp: string,
+): Promise<BuiltEmail> {
+  return buildFromTemplate("email_verification_otp", {
+    name: escapeHtml(name),
+    otp: escapeHtml(otp),
+  });
+}
+
+export async function buildForgotPasswordOTPEmail(
+  name: string,
+  otp: string,
+): Promise<BuiltEmail> {
+  return buildFromTemplate("password_reset_otp", {
+    name: escapeHtml(name),
+    otp: escapeHtml(otp),
+  });
+}

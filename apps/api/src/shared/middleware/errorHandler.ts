@@ -13,9 +13,16 @@ export const globalRateLimit = rateLimit({
 
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 10,
   message: { success: false, message: "Too many authentication attempts, please try again later." },
-  skipSuccessfulRequests: true,
+});
+
+export const otpRateLimit = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 3, // 3 requests per minute
+  message: { success: false, message: "Too many OTP attempts, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 export const billingWebhookRateLimit = rateLimit({

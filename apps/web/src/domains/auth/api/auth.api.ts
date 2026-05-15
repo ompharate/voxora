@@ -1,9 +1,9 @@
 import { apiClient } from "../../../shared/lib/api-client";
 import type { User } from "../../../shared/types/types";
-import type { 
-  LoginPayload, 
-  LoginResponse, 
-  SignupPayload, 
+import type {
+  LoginPayload,
+  LoginResponse,
+  SignupPayload,
   SignupResponse,
   AcceptInviteResponse,
   OrganizationResponse,
@@ -27,6 +27,15 @@ class AuthApi {
       password: data.password,
       companyName: data.companyName,
     });
+    return response;
+  }
+
+  async initiateSignup(data: { name: string; email: string }): Promise<any> {
+    return apiClient.post("/auth/initiate-signup", data);
+  }
+
+  async completeSignup(data: any): Promise<SignupResponse> {
+    const response = await apiClient.post<SignupResponse>("/auth/complete-signup", data);
 
     // Normalize bootstrap response shape from API (`organization.id`) to app shape (`organization._id`).
     if (response?.success && response.data?.organization) {
@@ -153,17 +162,29 @@ class AuthApi {
   }
 
   async resetPassword(token: string, newPassword: string): Promise<ResetPasswordResponse> {
-    return apiClient.post<ResetPasswordResponse>("/auth/reset-password", { 
-      token, 
-      newPassword 
+    return apiClient.post<ResetPasswordResponse>("/auth/reset-password", {
+      token,
+      newPassword
     });
   }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<ChangePasswordResponse> {
-    return apiClient.post<ChangePasswordResponse>("/auth/change-password", { 
-      currentPassword, 
-      newPassword 
+    return apiClient.post<ChangePasswordResponse>("/auth/change-password", {
+      currentPassword,
+      newPassword
     });
+  }
+
+  async verifyOTP(email: string, code: string, type: string): Promise<any> {
+    return apiClient.post("/auth/verify-otp", { email, code, type });
+  }
+
+  async resendOTP(email: string, type: string): Promise<any> {
+    return apiClient.post("/auth/resend-otp", { email, type });
+  }
+
+  async resetPasswordWithOTP(data: any): Promise<any> {
+    return apiClient.post("/auth/reset-password-otp", data);
   }
 }
 

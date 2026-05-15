@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate, Link } from "react-router";
+import { useState } from "react";
+import { useNavigate, Link } from "react-router";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import {
@@ -17,394 +17,254 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
+  ShieldCheck,
 } from "lucide-react";
 import { Alert } from "@/shared/ui/alert";
 import { validateEmail, validatePassword } from "@/shared/lib/validation";
-import { useForgotPassword, useResetPassword } from "../hooks";
+import { authApi } from "../api/auth.api";
 import Logo from "@/shared/components/logo";
+import { OTPInput } from "./otp-input.tsx";
+import { ResendOTPTimer } from "./resend-otp-timer.tsx";
+
+type RecoveryStep = "email" | "otp" | "reset";
 
 export function PasswordRecoveryForm() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = searchParams.get("token");
-  const isResetMode = !!token;
-
-  // Forgot password state
-  const { mutate: forgotPassword, isPending: isForgotPending, isSuccess: isForgotSuccess, isError: isForgotError, error: forgotError } = useForgotPassword();
+  const [step, setStep] = useState<RecoveryStep>("email");
   const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState<string | undefined>();
-  const [emailTouched, setEmailTouched] = useState(false);
-
-  // Reset password state
-  const { mutate: resetPassword, isPending: isResetPending, isSuccess: isResetSuccess, isError: isResetError, error: resetError } = useResetPassword();
+  const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | undefined>();
-  const [confirmPasswordError, setConfirmPasswordError] = useState<string | undefined>();
-  const [passwordTouched, setPasswordTouched] = useState({ password: false, confirmPassword: false });
 
-  // Redirect to login after successful reset
-  useEffect(() => {
-    if (isResetSuccess) {
-      const timer = setTimeout(() => {
-        navigate("/auth/login");
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [isResetSuccess, navigate]);
-
-  // Forgot Password Handlers
-  const handleEmailBlur = () => {
-    setEmailTouched(true);
-    const error = validateEmail(email);
-    setEmailError(error || undefined);
-  };
-
-  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+  // Email step handler
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEmailTouched(true);
-
-    const emailValidationError = validateEmail(email);
-    if (emailValidationError) {
-      setEmailError(emailValidationError);
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
       return;
     }
 
-    forgotPassword(email);
-  };
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-    if (emailTouched) {
-      setEmailError(undefined);
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authApi.forgotPassword(email);
+      setStep("otp");
+    } catch (err: any) {
+      setError(err.message || "Failed to send OTP. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Reset Password Handlers
-  const handlePasswordBlur = () => {
-    setPasswordTouched({ ...passwordTouched, password: true });
-    const error = validatePassword(password);
-    setPasswordError(error || undefined);
-  };
-
-  const handleConfirmPasswordBlur = () => {
-    setPasswordTouched({ ...passwordTouched, confirmPassword: true });
-    if (password !== confirmPassword) {
-      setConfirmPasswordError("Passwords do not match");
-    } else {
-      setConfirmPasswordError(undefined);
+  // OTP step handler
+  const handleOtpComplete = async (code: string) => {
+    setOtp(code);
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authApi.verifyOTP(email, code, "password_reset");
+      setStep("reset");
+    } catch (err: any) {
+      setError(err.message || "Invalid or expired code.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+  // Reset password handler
+  const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPasswordTouched({ password: true, confirmPassword: true });
-
-    const passwordValidationError = validatePassword(password);
-    if (passwordValidationError) {
-      setPasswordError(passwordValidationError);
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
-
     if (password !== confirmPassword) {
-      setConfirmPasswordError("Passwords do not match");
+      setError("Passwords do not match");
       return;
     }
 
-    if (!token) {
-      return;
-    }
-
-    resetPassword({ token, newPassword: password });
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-    if (passwordTouched.password) {
-      setPasswordError(undefined);
-    }
-  };
-
-  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setConfirmPassword(e.target.value);
-    if (passwordTouched.confirmPassword) {
-      setConfirmPasswordError(undefined);
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authApi.resetPasswordWithOTP({ email, code: otp, newPassword: password });
+      setIsSuccess(true);
+      setTimeout(() => navigate("/auth/login"), 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to reset password.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Success State - Email Sent
-  if (isForgotSuccess) {
+  const handleResend = async () => {
+    await authApi.resendOTP(email, "password_reset");
+  };
+
+  if (isSuccess) {
     return (
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md border-border/40 shadow-2xl">
         <CardHeader className="space-y-1 text-center">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center">
-              <CheckCircle className="h-6 w-6 text-success" />
+            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Check your email</CardTitle>
+          <CardTitle className="text-2xl font-bold">Password Reset Successful</CardTitle>
           <CardDescription>
-            We&apos;ve sent a password reset link to <strong>{email}</strong>
+            Your security is our priority. You can now log in with your new password.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-center text-sm text-muted-foreground mb-4">
-            Didn&apos;t receive the email? Check your spam folder or try again.
-          </div>
-          <div className="space-y-2">
-            <Button
-              variant="outline"
-              className="w-full cursor-pointer"
-              onClick={() => {
-                setEmail("");
-                setEmailTouched(false);
-                window.location.reload();
-              }}
-            >
-              Try again
-            </Button>
-            <Link to="/auth/login" className="block w-full">
-              <Button variant="ghost" className="w-full cursor-pointer">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to login
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Success State - Password Reset
-  if (isResetSuccess) {
-    return (
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center">
-              <CheckCircle className="h-6 w-6 text-success" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl">Password reset successful</CardTitle>
-          <CardDescription>
-            Your password has been successfully reset
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center text-sm text-muted-foreground mb-4">
-            Redirecting to login page...
-          </div>
-          <Link to="/auth/login" className="block w-full">
-            <Button className="w-full cursor-pointer">Go to login</Button>
+        <CardContent className="text-center">
+          <p className="text-sm text-muted-foreground mb-6">Redirecting to login page...</p>
+          <Link to="/auth/login" className="w-full">
+            <Button className="w-full font-bold">Go to Login</Button>
           </Link>
         </CardContent>
       </Card>
     );
   }
 
-  // Invalid Token State
-  if (isResetMode && !token) {
-    return (
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-destructive/10 rounded-lg flex items-center justify-center">
-              <AlertCircle className="h-6 w-6 text-destructive" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl">Invalid Link</CardTitle>
-          <CardDescription>
-            This password reset link is invalid or has expired
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link to="/auth/password-recovery" className="block w-full">
-            <Button className="w-full cursor-pointer">
-              Request new link
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
-    );
-  }
+  return (
+    <Card className="w-full max-w-md border-border/40 shadow-2xl overflow-hidden">
+      <div className="h-1.5 w-full bg-muted/20">
+        <div 
+          className="h-full bg-primary transition-all duration-500 ease-out" 
+          style={{ width: step === "email" ? "33%" : step === "otp" ? "66%" : "100%" }}
+        />
+      </div>
+      <CardHeader className="space-y-1 pt-8">
+        <div className="flex items-center justify-center mb-6">
+          <Logo size={48} animate={false} />
+        </div>
+        <CardTitle className="text-2xl font-bold text-center">
+          {step === "email" && "Recovery Email"}
+          {step === "otp" && "Verification"}
+          {step === "reset" && "Secure Password"}
+        </CardTitle>
+        <CardDescription className="text-center">
+          {step === "email" && "Enter your email to receive a secure recovery code."}
+          {step === "otp" && `Enter the 6-digit code sent to ${email}`}
+          {step === "reset" && "Create a strong, unique password for your account."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pb-8">
+        {error && (
+          <Alert variant="destructive" className="mb-6 animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
+          </Alert>
+        )}
 
-  // Reset Password Form
-  if (isResetMode) {
-    return (
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <Logo size={56} animate={false} />
-          </div>
-          <CardTitle className="text-2xl text-center">Reset Password</CardTitle>
-          <CardDescription className="text-center">
-            Enter your new password below
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
-            {isResetError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <span>{resetError?.message || "Failed to reset password"}</span>
-              </Alert>
-            )}
-
+        {step === "email" && (
+          <form onSubmit={handleEmailSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                New Password
-              </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="password"
-                  name="password"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10 h-11 bg-muted/10 border-border/40"
+                  disabled={isLoading}
+                  required
+                />
+              </div>
+            </div>
+            <Button type="submit" className="w-full h-11 font-bold shadow-lg shadow-primary/20" disabled={isLoading}>
+              {isLoading ? "Sending..." : "Send Verification Code"}
+            </Button>
+          </form>
+        )}
+
+        {step === "otp" && (
+          <div className="space-y-8">
+            <OTPInput 
+              value={otp} 
+              onChange={(val) => {
+                setOtp(val);
+                if (val.length === 6) {
+                  handleOtpComplete(val);
+                }
+              }} 
+              disabled={isLoading} 
+            />
+            <ResendOTPTimer onResend={handleResend} />
+            <Button 
+              variant="ghost" 
+              className="w-full text-muted-foreground" 
+              onClick={() => setStep("email")}
+              disabled={isLoading}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Change Email
+            </Button>
+          </div>
+        )}
+
+        {step === "reset" && (
+          <form onSubmit={handleResetSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <div className="relative">
+                <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="New Password"
                   value={password}
-                  onChange={handlePasswordChange}
-                  onBlur={handlePasswordBlur}
-                  className={`pl-10 pr-10 cursor-text ${passwordTouched.password && passwordError ? "border-destructive" : ""}`}
-                  disabled={isResetPending}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 pr-10 h-11 bg-muted/10 border-border/40"
+                  disabled={isLoading}
+                  required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {passwordTouched.password && passwordError && (
-                <p className="text-sm text-destructive">{passwordError}</p>
-              )}
             </div>
-
             <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium">
-                Confirm New Password
-              </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <ShieldCheck className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="Confirm New Password"
                   value={confirmPassword}
-                  onChange={handleConfirmPasswordChange}
-                  onBlur={handleConfirmPasswordBlur}
-                  className={`pl-10 pr-10 cursor-text ${passwordTouched.confirmPassword && confirmPasswordError ? "border-destructive" : ""}`}
-                  disabled={isResetPending}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pl-10 pr-10 h-11 bg-muted/10 border-border/40"
+                  disabled={isLoading}
+                  required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground"
                 >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {passwordTouched.confirmPassword && confirmPasswordError && (
-                <p className="text-sm text-destructive">{confirmPasswordError}</p>
-              )}
             </div>
-
-            <Button
-              type="submit"
-              className="w-full cursor-pointer"
-              disabled={isResetPending}
-            >
-              {isResetPending ? "Resetting..." : "Reset password"}
+            <Button type="submit" className="w-full h-11 font-bold shadow-lg shadow-primary/20" disabled={isLoading}>
+              {isLoading ? "Updating..." : "Reset Password"}
             </Button>
-
-            <div className="text-center">
-              <Link
-                to="/auth/login"
-                className="text-sm text-muted-foreground hover:text-primary inline-flex items-center cursor-pointer"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to login
-              </Link>
-            </div>
           </form>
-        </CardContent>
-      </Card>
-    );
-  }
+        )}
 
-  // Forgot Password Form (Default)
-  return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1">
-        <div className="flex items-center justify-center mb-4">
-          <Logo size={56} animate={false} />
+        <div className="mt-8 text-center">
+          <Link to="/auth/login" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Login
+          </Link>
         </div>
-        <CardTitle className="text-2xl text-center">Forgot Password</CardTitle>
-        <CardDescription className="text-center">
-          Enter your email address and we&apos;ll send you a password reset link
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
-          {isForgotError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <span>{forgotError?.message || "Failed to send reset email"}</span>
-            </Alert>
-          )}
-
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={handleEmailChange}
-                onBlur={handleEmailBlur}
-                className={`pl-10 cursor-text ${emailError && emailTouched ? "border-destructive" : ""}`}
-                disabled={isForgotPending}
-              />
-            </div>
-            {emailError && emailTouched && (
-              <p className="text-sm text-destructive">{emailError}</p>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full cursor-pointer"
-            disabled={isForgotPending}
-          >
-            {isForgotPending ? "Sending..." : "Send reset link"}
-          </Button>
-
-          <div className="text-center">
-            <Link
-              to="/auth/login"
-              className="text-sm text-muted-foreground hover:text-primary inline-flex items-center cursor-pointer"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to login
-            </Link>
-          </div>
-        </form>
       </CardContent>
     </Card>
   );
